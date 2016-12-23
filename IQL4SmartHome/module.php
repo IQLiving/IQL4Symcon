@@ -29,6 +29,7 @@ class IQL4SmartHome extends IPSModule {
             if($obj['ObjectType'] == 6) {
                 $target = IPS_GetLink($child)['TargetID'];
                 $vtarget = IPS_GetVariable($target);
+                $vprofile = IPS_GetVariableProfile($vtarget['VariableProfile']);
                 $instance = IPS_GetInstance(IPS_GetParent($target));
                 if($vtarget['VariableType'] >= 0 and $vtarget['VariableType'] < 3) {
                     $discover['discoveredAppliances'][$count]['applianceId'] = $target;
@@ -47,6 +48,11 @@ class IQL4SmartHome extends IPSModule {
                         $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
                         $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
                     }
+                    elseif(trim($vprofile['Suffix']) == "%") {
+                        $discover['discoveredAppliances'][$count]['actions'][] = "setPercentage";
+                        $discover['discoveredAppliances'][$count]['actions'][] = "incrementPercentage";
+                        $discover['discoveredAppliances'][$count]['actions'][] = "decrementPercentage";
+                    }
                     $count++;
                 }
             }
@@ -61,22 +67,47 @@ class IQL4SmartHome extends IPSModule {
         $header['namespace'] = $data['header']['namespace'];
         $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
         $header['payloadVersion'] = "2";
-        $payload = array();
         if($data['header']['name']  == "TurnOnRequest") {
             $action = true;
-            $payload = json_decode("{}");
         }
         elseif($data['header']['name']  == "TurnOffRequest") {
             $action = false;
-            $payload = json_decode("{}");
         }
+        elseif($data['header']['name'] == "SetPercentageRequest") {
+            $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
+            $profile = IPS_GetVariableProfile($var['VariableProfile']);
+            if(trim($profile['Suffix']) == "%") {
+                $action = (($data['payload']['percentageState']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+            }
+        }
+        elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
+            $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
+            $profile = IPS_GetVariableProfile($var['VariableProfile']);
+            if(trim($profile['Suffix']) == "%") {
+                $oldvalue = GetValue($data['payload']['appliance']['applianceId']);
+                $newvalue = (($data['payload']['deltaPercentage']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+                if($data['header']['name'] == "IncrementPercentageRequest") {
+                    $action = $oldvalue + $newvalue;
+                }
+                else {
+                    $action = $oldvalue - $newvalue;
+                }
+            }
+        }
+
 
         if(isset($action)) {
             $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
             IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
         }
         $result['header'] = $header;
-        $result['payload'] = $payload;
+        if(isset($payload)) {
+            $result['payload'] = $payload;
+        }
+        else {
+            $result['payload'] = json_decode("{}");
+        }
+
         return $result;
     }
 

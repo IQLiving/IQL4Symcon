@@ -165,11 +165,11 @@ class IQL4SmartHome extends IPSModule {
         $data = json_decode($jsonRequest,true);
 
         if($data['header']['namespace'] == "Alexa.ConnectedHome.Discovery") {
-            $result = $this->DeviceDiscovery($data);
+            $result = @$this->DeviceDiscovery($data);
             echo json_encode($result);
         }
         elseif($data['header']['namespace'] == "Alexa.ConnectedHome.Control") {
-            $result = $this->DeviceControl($data);
+            $result = @$this->DeviceControl($data);
             echo json_encode($result);
         }
     }

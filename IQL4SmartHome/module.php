@@ -53,6 +53,11 @@ class IQL4SmartHome extends IPSModule {
                         $discover['discoveredAppliances'][$count]['actions'][] = "incrementPercentage";
                         $discover['discoveredAppliances'][$count]['actions'][] = "decrementPercentage";
                     }
+                    elseif(trim($vprofile['Suffix']) == "°C") {
+                        $discover['discoveredAppliances'][$count]['actions'][] = "setTargetTemperature";
+                        $discover['discoveredAppliances'][$count]['actions'][] = "incrementTargetTemperature";
+                        $discover['discoveredAppliances'][$count]['actions'][] = "decrementTargetTemperature";
+                    }
                     $count++;
                 }
             }
@@ -63,6 +68,8 @@ class IQL4SmartHome extends IPSModule {
     }
 
     private function DeviceControl(array $data) {
+        $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
+        $profile = IPS_GetVariableProfile($var['VariableProfile']);
         $header['messageId'] = $this->GenUUID();
         $header['namespace'] = $data['header']['namespace'];
         $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
@@ -74,15 +81,11 @@ class IQL4SmartHome extends IPSModule {
             $action = false;
         }
         elseif($data['header']['name'] == "SetPercentageRequest") {
-            $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
-            $profile = IPS_GetVariableProfile($var['VariableProfile']);
             if(trim($profile['Suffix']) == "%") {
                 $action = (($data['payload']['percentageState']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
             }
         }
         elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
-            $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
-            $profile = IPS_GetVariableProfile($var['VariableProfile']);
             if(trim($profile['Suffix']) == "%") {
                 $oldvalue = GetValue($data['payload']['appliance']['applianceId']);
                 $newvalue = (($data['payload']['deltaPercentage']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
@@ -94,7 +97,29 @@ class IQL4SmartHome extends IPSModule {
                 }
             }
         }
-
+        elseif($data['header']['name'] == "SetTargetTemperatureRequest") {
+            if(trim($profile['Suffix']) == "°C") {
+                $action = $data['payload']['targetTemperature']['value'];
+                $payload['targetTemperature']['value'] = $data['payload']['targetTemperature']['value'];
+                $payload['temperatureMode']['value'] = "AUTO";
+                $payload['previousState']['targetTemperature']['value'] = GetValue($data['payload']['appliance']['applianceId']);
+                $payload['previousState']['mode']['value'] = "AUTO";
+            }
+        }
+        elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
+            if(trim($profile['Suffix']) == "°C") {
+               if($data['header']['name'] == "IncrementTargetTemperatureRequest") {
+                   $action = GetValue($data['payload']['appliance']['applianceId']) + $data['payload']['deltaTemperature']['value'];
+               }
+               elseif($data['header']['name'] == "DecrementTargetTemperatureRequest") {
+                   $action = GetValue($data['payload']['appliance']['applianceId']) - $data['payload']['deltaTemperature']['value'];
+               }
+               $payload['targetTemperature']['value'] = $action;
+               $payload['temperatureMode']['value'] = "AUTO";
+               $payload['previousState']['targetTemperature']['value'] = GetValue($data['payload']['appliance']['applianceId']);
+               $payload['previousState']['mode']['value'] = "AUTO";
+            }
+        }
 
         if(isset($action)) {
             $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);

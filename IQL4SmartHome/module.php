@@ -32,28 +32,52 @@ class IQL4SmartHome extends IPSModule {
                 $vprofile = IPS_GetVariableProfile($vtarget['VariableProfile']);
                 $instance = IPS_GetInstance(IPS_GetParent($target));
                 if($vtarget['VariableType'] >= 0 and $vtarget['VariableType'] < 3) {
-                    $discover['discoveredAppliances'][$count]['applianceId'] = $target;
-                    $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
-                    $discover['discoveredAppliances'][$count]['modelName'] = $instance['ModuleInfo']['ModuleName'];
-                    $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
-                    $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
-                    $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Device";
-                    if($vtarget['VariableAction'] > 0) {
-                        $discover['discoveredAppliances'][$count]['isReachable'] = true;
-                    }
-                    else {
-                        $discover['discoveredAppliances'][$count]['isReachable'] = false;
-                    }
                     if($vtarget['VariableType'] == 0) {
+                        $discover['discoveredAppliances'][$count]['applianceId'] = $target;
+                        $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                        $discover['discoveredAppliances'][$count]['modelName'] = $instance['ModuleInfo']['ModuleName'];
+                        $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
+                        $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
+                        $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Device";
+                        if($vtarget['VariableAction'] > 0) {
+                            $discover['discoveredAppliances'][$count]['isReachable'] = true;
+                        }
+                        else {
+                            $discover['discoveredAppliances'][$count]['isReachable'] = false;
+                        }
                         $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
                         $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
                     }
                     elseif(trim($vprofile['Suffix']) == "%") {
+                        $discover['discoveredAppliances'][$count]['applianceId'] = $target;
+                        $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                        $discover['discoveredAppliances'][$count]['modelName'] = $instance['ModuleInfo']['ModuleName'];
+                        $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
+                        $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
+                        $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Device";
+                        if($vtarget['VariableAction'] > 0) {
+                            $discover['discoveredAppliances'][$count]['isReachable'] = true;
+                        }
+                        else {
+                            $discover['discoveredAppliances'][$count]['isReachable'] = false;
+                        }
                         $discover['discoveredAppliances'][$count]['actions'][] = "setPercentage";
                         $discover['discoveredAppliances'][$count]['actions'][] = "incrementPercentage";
                         $discover['discoveredAppliances'][$count]['actions'][] = "decrementPercentage";
                     }
                     elseif(trim($vprofile['Suffix']) == "°C") {
+                        $discover['discoveredAppliances'][$count]['applianceId'] = $target;
+                        $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                        $discover['discoveredAppliances'][$count]['modelName'] = $instance['ModuleInfo']['ModuleName'];
+                        $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
+                        $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
+                        $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Device";
+                        if($vtarget['VariableAction'] > 0) {
+                            $discover['discoveredAppliances'][$count]['isReachable'] = true;
+                        }
+                        else {
+                            $discover['discoveredAppliances'][$count]['isReachable'] = false;
+                        }
                         $discover['discoveredAppliances'][$count]['actions'][] = "setTargetTemperature";
                         $discover['discoveredAppliances'][$count]['actions'][] = "incrementTargetTemperature";
                         $discover['discoveredAppliances'][$count]['actions'][] = "decrementTargetTemperature";

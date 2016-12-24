@@ -63,6 +63,8 @@ class IQL4SmartHome extends IPSModule {
                             $discover['discoveredAppliances'][$count]['actions'][] = "setPercentage";
                             $discover['discoveredAppliances'][$count]['actions'][] = "incrementPercentage";
                             $discover['discoveredAppliances'][$count]['actions'][] = "decrementPercentage";
+                            $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
+                            $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
                         } elseif (trim($vprofile['Suffix']) == "°C") {
                             $discover['discoveredAppliances'][$count]['applianceId'] = $target;
                             $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
@@ -97,10 +99,20 @@ class IQL4SmartHome extends IPSModule {
         $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
         $header['payloadVersion'] = "2";
         if($data['header']['name']  == "TurnOnRequest") {
-            $action = true;
+            if(trim($profile['Suffix']) == "%") {
+                $action = ((100 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+            }
+            else {
+                $action = true;
+            }
         }
         elseif($data['header']['name']  == "TurnOffRequest") {
-            $action = false;
+            if(trim($profile['Suffix']) == "%") {
+                $action = ((0 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+            }
+            else {
+                $action = false;
+            }
         }
         elseif($data['header']['name'] == "SetPercentageRequest") {
             if(trim($profile['Suffix']) == "%") {

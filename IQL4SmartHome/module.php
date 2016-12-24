@@ -31,7 +31,12 @@ class IQL4SmartHome extends IPSModule {
                 $objtarget = IPS_GetObject($target);
                 if($objtarget['ObjectType'] == 2) {
                     $vtarget = IPS_GetVariable($target);
-                    $vprofile = IPS_GetVariableProfile($vtarget['VariableProfile']);
+                    if($vtarget['VariableCustomProfile'] != "") {
+                        $vprofile = IPS_GetVariableProfile($vtarget['VariableCustomProfile']);
+                    }
+                    else {
+                        $vprofile = IPS_GetVariableProfile($vtarget['VariableProfile']);
+                    }
                     $instance = IPS_GetInstance(IPS_GetParent($target));
                     if ($vtarget['VariableType'] >= 0 and $vtarget['VariableType'] < 3) {
                         if ($vtarget['VariableType'] == 0) {
@@ -41,7 +46,7 @@ class IQL4SmartHome extends IPSModule {
                             $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
                             $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
                             $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Device";
-                            if ($vtarget['VariableAction'] > 0) {
+                            if ($vtarget['VariableAction'] > 0 or $vtarget['VariableCustomAction'] > 0) {
                                 $discover['discoveredAppliances'][$count]['isReachable'] = true;
                             } else {
                                 $discover['discoveredAppliances'][$count]['isReachable'] = false;
@@ -93,7 +98,12 @@ class IQL4SmartHome extends IPSModule {
 
     private function DeviceControl(array $data) {
         $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
-        $profile = IPS_GetVariableProfile($var['VariableProfile']);
+        if($var['VariableCustomProfile'] != "") {
+            $profile = IPS_GetVariableProfile($var['VariableCustomProfile']);
+        }
+        else {
+            $profile = IPS_GetVariableProfile($var['VariableProfile']);
+        }
         $header['messageId'] = $this->GenUUID();
         $header['namespace'] = $data['header']['namespace'];
         $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
@@ -156,8 +166,12 @@ class IQL4SmartHome extends IPSModule {
         }
 
         if(isset($action)) {
-            $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
-            IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
+            if($var['VariableCustomAction'] > 0) {
+                IPS_RunScriptEx($var['VariableCustomAction'], Array("VARIABLE" => $data['payload']['appliance']['applianceId'], "VALUE" => $action));
+            } else {
+                $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
+                IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
+            }
         }
         $result['header'] = $header;
         if(isset($payload)) {

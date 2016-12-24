@@ -53,6 +53,7 @@ class IQL4SmartHome extends IPSModule {
                             }
                             $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
                             $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
+                            $count++;
                         } elseif (trim($vprofile['Suffix']) == "%") {
                             $discover['discoveredAppliances'][$count]['applianceId'] = $target;
                             $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
@@ -70,6 +71,7 @@ class IQL4SmartHome extends IPSModule {
                             $discover['discoveredAppliances'][$count]['actions'][] = "decrementPercentage";
                             $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
                             $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
+                            $count++;
                         } elseif (trim($vprofile['Suffix']) == "°C") {
                             $discover['discoveredAppliances'][$count]['applianceId'] = $target;
                             $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
@@ -85,8 +87,8 @@ class IQL4SmartHome extends IPSModule {
                             $discover['discoveredAppliances'][$count]['actions'][] = "setTargetTemperature";
                             $discover['discoveredAppliances'][$count]['actions'][] = "incrementTargetTemperature";
                             $discover['discoveredAppliances'][$count]['actions'][] = "decrementTargetTemperature";
+                            $count++;
                         }
-                        $count++;
                     }
                 }
             }

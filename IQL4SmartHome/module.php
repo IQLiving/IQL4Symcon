@@ -41,7 +41,12 @@ class IQL4SmartHome extends IPSModule {
                     if ($vtarget['VariableType'] >= 0 and $vtarget['VariableType'] < 3) {
                         if ($vtarget['VariableType'] == 0) {
                             $discover['discoveredAppliances'][$count]['applianceId'] = $target;
-                            $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                            if(IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'] == "") {
+                                $discover['discoveredAppliances'][$count]['manufacturerName'] = "Symcon";
+                            }
+                            else {
+                                $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                            }
                             $discover['discoveredAppliances'][$count]['modelName'] = $instance['ModuleInfo']['ModuleName'];
                             $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
                             $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
@@ -56,7 +61,12 @@ class IQL4SmartHome extends IPSModule {
                             $count++;
                         } elseif (trim($vprofile['Suffix']) == "%") {
                             $discover['discoveredAppliances'][$count]['applianceId'] = $target;
-                            $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                            if(IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'] == "") {
+                                $discover['discoveredAppliances'][$count]['manufacturerName'] = "Symcon";
+                            }
+                            else {
+                                $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                            }
                             $discover['discoveredAppliances'][$count]['modelName'] = $instance['ModuleInfo']['ModuleName'];
                             $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
                             $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
@@ -74,7 +84,12 @@ class IQL4SmartHome extends IPSModule {
                             $count++;
                         } elseif (trim($vprofile['Suffix']) == "°C") {
                             $discover['discoveredAppliances'][$count]['applianceId'] = $target;
-                            $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                            if(IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'] == "") {
+                                $discover['discoveredAppliances'][$count]['manufacturerName'] = "Symcon";
+                            }
+                            else {
+                                $discover['discoveredAppliances'][$count]['manufacturerName'] = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
+                            }
                             $discover['discoveredAppliances'][$count]['modelName'] = $instance['ModuleInfo']['ModuleName'];
                             $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
                             $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();

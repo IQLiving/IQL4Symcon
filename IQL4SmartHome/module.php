@@ -106,6 +106,18 @@ class IQL4SmartHome extends IPSModule {
                         }
                     }
                 }
+                elseif($objtarget['ObjectType'] == 3) {
+                    $discover['discoveredAppliances'][$count]['applianceId'] = $target;
+                    $discover['discoveredAppliances'][$count]['manufacturerName'] = "Symcon";
+                    $discover['discoveredAppliances'][$count]['modelName'] = "Symcon Scene";
+                    $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
+                    $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
+                    $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Script";
+                    $discover['discoveredAppliances'][$count]['isReachable'] = true;
+                    $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
+                    $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
+                    $count++;
+                }
             }
         }
         $result['header'] = $header;
@@ -114,90 +126,118 @@ class IQL4SmartHome extends IPSModule {
     }
 
     private function DeviceControl(array $data) {
-        $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
-        if($var['VariableProfile'] == "") {
-            $profile = IPS_GetVariableProfile($var['VariableCustomProfile']);
+        $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
+        if($obj['ObjectType'] == 2) {
+            $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
+            if($var['VariableProfile'] == "") {
+                $profile = IPS_GetVariableProfile($var['VariableCustomProfile']);
+            }
+            else {
+                $profile = IPS_GetVariableProfile($var['VariableProfile']);
+            }
+            $header['messageId'] = $this->GenUUID();
+            $header['namespace'] = $data['header']['namespace'];
+            $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
+            $header['payloadVersion'] = "2";
+            if($data['header']['name']  == "TurnOnRequest") {
+                if(trim($profile['Suffix']) == "%") {
+                    $action = ((100 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+                }
+                else {
+                    $action = true;
+                }
+            }
+            elseif($data['header']['name']  == "TurnOffRequest") {
+                if(trim($profile['Suffix']) == "%") {
+                    $action = ((0 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+                }
+                else {
+                    $action = false;
+                }
+            }
+            elseif($data['header']['name'] == "SetPercentageRequest") {
+                if(trim($profile['Suffix']) == "%") {
+                    $action = (($data['payload']['percentageState']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+                }
+            }
+            elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
+                if(trim($profile['Suffix']) == "%") {
+                    $oldvalue = GetValue($data['payload']['appliance']['applianceId']);
+                    $newvalue = (($data['payload']['deltaPercentage']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+                    if($data['header']['name'] == "IncrementPercentageRequest") {
+                        $action = $oldvalue + $newvalue;
+                    }
+                    else {
+                        $action = $oldvalue - $newvalue;
+                    }
+                }
+            }
+            elseif($data['header']['name'] == "SetTargetTemperatureRequest") {
+                if(trim($profile['Suffix']) == "°C") {
+                    $action = $data['payload']['targetTemperature']['value'];
+                    $payload['targetTemperature']['value'] = $data['payload']['targetTemperature']['value'];
+                    $payload['temperatureMode']['value'] = "AUTO";
+                    $payload['previousState']['targetTemperature']['value'] = GetValue($data['payload']['appliance']['applianceId']);
+                    $payload['previousState']['mode']['value'] = "AUTO";
+                }
+            }
+            elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
+                if(trim($profile['Suffix']) == "°C") {
+                    if($data['header']['name'] == "IncrementTargetTemperatureRequest") {
+                        $action = GetValue($data['payload']['appliance']['applianceId']) + $data['payload']['deltaTemperature']['value'];
+                    }
+                    elseif($data['header']['name'] == "DecrementTargetTemperatureRequest") {
+                        $action = GetValue($data['payload']['appliance']['applianceId']) - $data['payload']['deltaTemperature']['value'];
+                    }
+                    $payload['targetTemperature']['value'] = $action;
+                    $payload['temperatureMode']['value'] = "AUTO";
+                    $payload['previousState']['targetTemperature']['value'] = GetValue($data['payload']['appliance']['applianceId']);
+                    $payload['previousState']['mode']['value'] = "AUTO";
+                }
+            }
+
+            if(isset($action)) {
+                if($var['VariableCustomAction'] > 0) {
+                    IPS_RunScriptEx($var['VariableCustomAction'], Array("VARIABLE" => $data['payload']['appliance']['applianceId'], "VALUE" => $action));
+                } else {
+                    $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
+                    IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
+                }
+            }
+            $result['header'] = $header;
+            if(isset($payload)) {
+                $result['payload'] = $payload;
+            }
+            else {
+                $result['payload'] = json_decode("{}");
+            }
+
+            return $result;
         }
-        else {
-            $profile = IPS_GetVariableProfile($var['VariableProfile']);
+        elseif($obj['ObjectType']== 3) {
+            if($data['header']['name']  == "TurnOnRequest") {
+                $action = true;
+            }
+            elseif($data['header']['name']  == "TurnOffRequest") {
+                $action = false;
+            }
+            if(isset($action)) {
+                IPS_RunScriptEx($data['payload']['appliance']['applianceId'], Array("VALUE" => $action));
+            }
+            $header['messageId'] = $this->GenUUID();
+            $header['namespace'] = $data['header']['namespace'];
+            $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
+            $header['payloadVersion'] = "2";
+            $result['header'] = $header;
+            $result['payload'] = json_decode("{}");
+            return $result;
         }
         $header['messageId'] = $this->GenUUID();
         $header['namespace'] = $data['header']['namespace'];
         $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
         $header['payloadVersion'] = "2";
-        if($data['header']['name']  == "TurnOnRequest") {
-            if(trim($profile['Suffix']) == "%") {
-                $action = ((100 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
-            }
-            else {
-                $action = true;
-            }
-        }
-        elseif($data['header']['name']  == "TurnOffRequest") {
-            if(trim($profile['Suffix']) == "%") {
-                $action = ((0 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
-            }
-            else {
-                $action = false;
-            }
-        }
-        elseif($data['header']['name'] == "SetPercentageRequest") {
-            if(trim($profile['Suffix']) == "%") {
-                $action = (($data['payload']['percentageState']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
-            }
-        }
-        elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
-            if(trim($profile['Suffix']) == "%") {
-                $oldvalue = GetValue($data['payload']['appliance']['applianceId']);
-                $newvalue = (($data['payload']['deltaPercentage']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
-                if($data['header']['name'] == "IncrementPercentageRequest") {
-                    $action = $oldvalue + $newvalue;
-                }
-                else {
-                    $action = $oldvalue - $newvalue;
-                }
-            }
-        }
-        elseif($data['header']['name'] == "SetTargetTemperatureRequest") {
-            if(trim($profile['Suffix']) == "°C") {
-                $action = $data['payload']['targetTemperature']['value'];
-                $payload['targetTemperature']['value'] = $data['payload']['targetTemperature']['value'];
-                $payload['temperatureMode']['value'] = "AUTO";
-                $payload['previousState']['targetTemperature']['value'] = GetValue($data['payload']['appliance']['applianceId']);
-                $payload['previousState']['mode']['value'] = "AUTO";
-            }
-        }
-        elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
-            if(trim($profile['Suffix']) == "°C") {
-               if($data['header']['name'] == "IncrementTargetTemperatureRequest") {
-                   $action = GetValue($data['payload']['appliance']['applianceId']) + $data['payload']['deltaTemperature']['value'];
-               }
-               elseif($data['header']['name'] == "DecrementTargetTemperatureRequest") {
-                   $action = GetValue($data['payload']['appliance']['applianceId']) - $data['payload']['deltaTemperature']['value'];
-               }
-               $payload['targetTemperature']['value'] = $action;
-               $payload['temperatureMode']['value'] = "AUTO";
-               $payload['previousState']['targetTemperature']['value'] = GetValue($data['payload']['appliance']['applianceId']);
-               $payload['previousState']['mode']['value'] = "AUTO";
-            }
-        }
-
-        if(isset($action)) {
-            if($var['VariableCustomAction'] > 0) {
-                IPS_RunScriptEx($var['VariableCustomAction'], Array("VARIABLE" => $data['payload']['appliance']['applianceId'], "VALUE" => $action));
-            } else {
-                $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
-                IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
-            }
-        }
         $result['header'] = $header;
-        if(isset($payload)) {
-            $result['payload'] = $payload;
-        }
-        else {
-            $result['payload'] = json_decode("{}");
-        }
-
+        $result['payload'] = json_decode("{}");
         return $result;
     }
 

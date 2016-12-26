@@ -21,7 +21,7 @@ class IQL4SmartHome extends IPSModule {
         $header['name'] = "DiscoverAppliancesResponse";
         $header['payloadVersion'] = "2";
 
-        $children = IPS_GetChildrenIDs($this->InstanceID);
+        $children = $this->GetAllChildIDs($this->InstanceID);
         $discover = array();
         $count = 0;
         foreach($children as $child) {
@@ -284,5 +284,22 @@ class IQL4SmartHome extends IPSModule {
             mt_rand(0, 0x3fff) | 0x8000,
             mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
+    }
+    protected function GetAllChildIDs($parent) {
+        $children = IPS_GetChildrenIDs($parent);
+        foreach($children as $entry) {
+            if(IPS_GetObject($entry)['ObjectType'] == 0) {
+                $return1 = $this->GetAllChildIDs($entry);
+            }
+            elseif(IPS_GetObject($entry)['ObjectType'] == 6) {
+                $return[] = IPS_GetObject($entry)['ObjectID'];
+            }
+        }
+        if(isset($return1)) {
+            foreach($return1 as $newentry) {
+                $return[] = $newentry;
+            }
+        }
+        return $return;
     }
 }

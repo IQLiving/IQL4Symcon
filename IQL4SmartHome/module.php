@@ -297,7 +297,7 @@ class IQL4SmartHome extends IPSModule {
         }
         if(isset($kategorie)) {
             foreach($kategorie as $locate) {
-                foreach(GetAllChils($locate) as $newentry) {
+                foreach($this->GetAllChildIDs($locate) as $newentry) {
                     $return[] = $newentry;
                 }
             }

@@ -317,6 +317,9 @@ class IQL4SmartHome extends IPSModule {
     ]
 }';
         }
+        else {
+            $return = '{}';
+        }
         return $return;
     }
 }

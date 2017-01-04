@@ -1,250 +1,297 @@
 <?
 class IQL4SmartHome extends IPSModule {
 
+    private $switchFunctions = Array("turnOn", "turnOff");
+    private $dimmingFunctions = Array("setPercentage", "incrementPercentage", "decrementPercentage");
+    private $temperatureFunctions = Array("setTargetTemperature", "incrementTargetTemperature", "decrementTargetTemperature");
+
     public function Create() {
+
         //Never delete this line!
         parent::Create();
-        //These lines are parsed on Symcon Startup or Instance creation
-        //You cannot use variables here. Just static values.
+
     }
 
     public function ApplyChanges() {
+
         //Never delete this line!
         parent::ApplyChanges();
 
         $this->RegisterOAuth("amazon_smarthome");
+
+    }
+
+    private function GetActionsForProfile($profile) {
+
+        if(($profile['ProfileType'] < 0) or ($profile['ProfileType'] >= 3))
+            return Array();
+
+        //Support all Boolean profile
+        if($profile['ProfileType'] == 0)
+            return $this->switchFunctions;
+
+        //Support percent suffix
+        if(trim($profile['Suffix']) == "%")
+            return array_merge($this->switchFunctions, $this->dimmingFunctions);
+
+        //Support temperature suffix
+        if(trim($profile['Suffix']) == "°C")
+            return $this->temperatureFunctions;
+
+        return Array();
+
+    }
+
+    private function BuildBasicAppliance($objectID, $targetID, $actionID) {
+
+        $moduleName = "Generic Device";
+        $moduleVendor = "Symcon";
+        $friendlyName = $moduleName;
+        $friendlyDescription = "No further description";
+
+        $o = IPS_GetObject($objectID);
+        if($o['ObjectName'] != "") {
+            $friendlyName = substr($o['ObjectName'], 0, 128);
+        }
+        if($o['ObjectInfo'] != "") {
+            $friendlyDescription = substr($o['ObjectInfo'], 0, 128);
+        }
+
+        //Enrich if we have an instance which will deliver more information
+        if(IPS_GetObject($actionID)['ObjectType'] == 1 /* Instance */) {
+            $module = IPS_GetModule(IPS_GetInstance($actionID)['ModuleInfo']['ModuleID']);
+            $moduleName = $module['ModuleName'];
+
+            //This might be empty which would be invalid. Therefore only copy if we have a valid string
+            if($module['Vendor'] != "") {
+                $moduleVendor = $module['Vendor'];
+            }
+        }
+
+        //Enrich if we have a script
+        if(IPS_GetObject($actionID)['ObjectType'] == 3 /* Script */) {
+            $moduleName = "Generic Script";
+        }
+
+        return Array(
+            'applianceId' => $targetID,
+            'manufacturerName' => $moduleVendor,
+            'modelName' => $moduleName,
+            'friendlyName' => $friendlyName,
+            'version' => IPS_GetKernelVersion(),
+            'friendlyDescription' => $friendlyDescription,
+            'isReachable' => true,
+            'actions' => Array()
+        );
+
     }
 
     private function DeviceDiscovery(array $data) {
-        $header['messageId'] = $this->GenUUID();
-        $header['namespace'] = "Alexa.ConnectedHome.Discovery";
-        $header['name'] = "DiscoverAppliancesResponse";
-        $header['payloadVersion'] = "2";
 
-        $children = $this->GetAllChildIDs($this->InstanceID);
-        $discover = array();
-        $count = 0;
-        foreach($children as $child) {
-            $obj = IPS_GetObject($child);
-            if($obj['ObjectType'] == 6) {
-                $target = IPS_GetLink($child)['TargetID'];
-                $objtarget = IPS_GetObject($target);
-                if($objtarget['ObjectType'] == 2) {
-                    $vtarget = IPS_GetVariable($target);
-                    if($vtarget['VariableCustomProfile'] != "") {
-                        $vprofile = IPS_GetVariableProfile($vtarget['VariableCustomProfile']);
-                    }
-                    else {
-                        $vprofile = IPS_GetVariableProfile($vtarget['VariableProfile']);
-                    }
-                    if(IPS_GetObject(IPS_GetParent($target))['ObjectType'] == 1) {
-                        $instance = IPS_GetInstance(IPS_GetParent($target));
-                        $ModuleName = $instance['ModuleInfo']['ModuleName'];
-                        if(IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'] == "") {
-                            $vendor = "Symcon";
-                        }
-                        else {
-                            $vendor = IPS_GetModule($instance['ModuleInfo']['ModuleID'])['Vendor'];
-                        }
-                    }
-                    else {
-                        $ModuleName = "Symcon Modul";
-                        $vendor = "Symcon";
-                    }
-                    if ($vtarget['VariableType'] >= 0 and $vtarget['VariableType'] < 3) {
-                        if ($vtarget['VariableType'] == 0) {
-                            $discover['discoveredAppliances'][$count]['applianceId'] = $target;
-                            $discover['discoveredAppliances'][$count]['manufacturerName'] = $vendor;
-                            $discover['discoveredAppliances'][$count]['modelName'] = $ModuleName;
-                            $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
-                            $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
-                            $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Device";
-                            if ($vtarget['VariableAction'] > 0 or $vtarget['VariableCustomAction'] > 0) {
-                                $discover['discoveredAppliances'][$count]['isReachable'] = true;
-                            } else {
-                                $discover['discoveredAppliances'][$count]['isReachable'] = false;
-                            }
-                            $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
-                            $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
-                            $count++;
-                        } elseif (trim($vprofile['Suffix']) == "%") {
-                            $discover['discoveredAppliances'][$count]['applianceId'] = $target;
-                            $discover['discoveredAppliances'][$count]['manufacturerName'] = $vendor;
-                            $discover['discoveredAppliances'][$count]['modelName'] = $ModuleName;
-                            $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
-                            $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
-                            $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Device";
-                            if ($vtarget['VariableAction'] > 0) {
-                                $discover['discoveredAppliances'][$count]['isReachable'] = true;
-                            } else {
-                                $discover['discoveredAppliances'][$count]['isReachable'] = false;
-                            }
-                            $discover['discoveredAppliances'][$count]['actions'][] = "setPercentage";
-                            $discover['discoveredAppliances'][$count]['actions'][] = "incrementPercentage";
-                            $discover['discoveredAppliances'][$count]['actions'][] = "decrementPercentage";
-                            $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
-                            $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
-                            $count++;
-                        } elseif (trim($vprofile['Suffix']) == "°C") {
-                            $discover['discoveredAppliances'][$count]['applianceId'] = $target;
-                            $discover['discoveredAppliances'][$count]['manufacturerName'] = $vendor;
-                            $discover['discoveredAppliances'][$count]['modelName'] = $ModuleName;
-                            $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
-                            $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
-                            $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Device";
-                            if ($vtarget['VariableAction'] > 0) {
-                                $discover['discoveredAppliances'][$count]['isReachable'] = true;
-                            } else {
-                                $discover['discoveredAppliances'][$count]['isReachable'] = false;
-                            }
-                            $discover['discoveredAppliances'][$count]['actions'][] = "setTargetTemperature";
-                            $discover['discoveredAppliances'][$count]['actions'][] = "incrementTargetTemperature";
-                            $discover['discoveredAppliances'][$count]['actions'][] = "decrementTargetTemperature";
-                            $count++;
-                        }
-                    }
+        $childrenIDs = $this->GetChildrenIDsRecursive($this->InstanceID);
+
+        $appliances = Array();
+        foreach($childrenIDs as $childID) {
+
+            //We are only interested in links
+            if(IPS_GetObject($childID)['ObjectType'] != 6)
+                continue;
+
+            $targetID = IPS_GetLink($childID)['TargetID'];
+
+            //Check supported types
+            $targetObject = IPS_GetObject($targetID);
+
+            if($targetObject['ObjectType'] == 2 /* Variable */) {
+                $targetVariable = IPS_GetVariable($targetID);
+
+                if ($targetVariable['VariableCustomProfile'] != "") {
+                    $profileName = $targetVariable['VariableCustomProfile'];
+                } else {
+                    $profileName = $targetVariable['VariableProfile'];
                 }
-                elseif($objtarget['ObjectType'] == 3) {
-                    $discover['discoveredAppliances'][$count]['applianceId'] = $target;
-                    $discover['discoveredAppliances'][$count]['manufacturerName'] = "Symcon";
-                    $discover['discoveredAppliances'][$count]['modelName'] = "Symcon Scene";
-                    $discover['discoveredAppliances'][$count]['friendlyName'] = $obj['ObjectName'];
-                    $discover['discoveredAppliances'][$count]['version'] = IPS_GetKernelVersion();
-                    $discover['discoveredAppliances'][$count]['friendlyDescription'] = "Symcon Script";
-                    $discover['discoveredAppliances'][$count]['isReachable'] = true;
-                    $discover['discoveredAppliances'][$count]['actions'][] = "turnOn";
-                    $discover['discoveredAppliances'][$count]['actions'][] = "turnOff";
-                    $count++;
+
+                if (!IPS_VariableProfileExists($profileName))
+                    continue;
+
+                $profile = IPS_GetVariableProfile($profileName);
+
+                $actions = $this->GetActionsForProfile($profile);
+
+                //only allow devices which have actions
+                if (sizeof($actions) == 0)
+                    continue;
+
+                if ($targetVariable['VariableCustomAction'] != "") {
+                    $profileAction = $targetVariable['VariableCustomAction'];
+                } else {
+                    $profileAction = $targetVariable['VariableAction'];
                 }
+
+                $appliance = $this->BuildBasicAppliance($childID, $targetID, $profileAction);
+                $appliance["isReachable"] = $profileAction > 10000;
+                $appliance['actions'] = $actions;
+
+                //append to discovered devices
+                $appliances[] = $appliance;
+
+            } elseif($targetObject['ObjectType'] == 3 /* Script */) {
+
+                $appliance = $this->BuildBasicAppliance($childID, $targetID, $profileAction);
+
+                //append to discovered devices
+                $appliances[] = $appliance;
+
             }
         }
-        $result['header'] = $header;
-        $result['payload'] = $discover;
-        return $result;
+
+        return Array(
+            'header' => Array(
+                'messageId' => $this->GenUUID(),
+                'namespace' => "Alexa.ConnectedHome.Discovery",
+                'name' => "DiscoverAppliancesResponse",
+                'payloadVersion' => "2"
+            ),
+            'payload' => Array(
+                'discoveredAppliances' => $appliances
+            )
+        );
+
     }
 
     private function DeviceControl(array $data) {
-        $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
-        if($obj['ObjectType'] == 2) {
-            $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
-            if($var['VariableCustomProfile'] != "") {
-                $profile = IPS_GetVariableProfile($var['VariableCustomProfile']);
+
+        $payload = new stdClass;
+        $targetID = $data['payload']['appliance']['applianceId'];
+        $o = IPS_GetObject($targetID);
+
+        if($o['ObjectType'] == 2 /* Variable */) {
+            $targetVariable = IPS_GetVariable($targetID);
+
+            if ($targetVariable['VariableCustomProfile'] != "") {
+                $profileName = $targetVariable['VariableCustomProfile'];
+            } else {
+                $profileName = $targetVariable['VariableProfile'];
             }
-            else {
-                $profile = IPS_GetVariableProfile($var['VariableProfile']);
+
+            $profile = IPS_GetVariableProfile($profileName);
+
+            if ($targetVariable['VariableCustomAction'] != "") {
+                $profileAction = $targetVariable['VariableCustomAction'];
+            } else {
+                $profileAction = $targetVariable['VariableAction'];
             }
-            $header['messageId'] = $this->GenUUID();
-            $header['namespace'] = $data['header']['namespace'];
-            $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
-            $header['payloadVersion'] = "2";
+
+            if($profileAction < 1000) {
+                echo "No action was defined!";
+                return null;
+            }
+
+            $percentToValue = function($value) use ($profile) {
+                return (($value / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+            };
+
             if($data['header']['name']  == "TurnOnRequest") {
                 if(trim($profile['Suffix']) == "%") {
-                    $action = ((100 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
-                    $action = (int) $action;
-                }
-                else {
-                    $action = true;
+                    $value = $profile['MaxValue'];
+                } else {
+                    $value = true;
                 }
             }
             elseif($data['header']['name']  == "TurnOffRequest") {
                 if(trim($profile['Suffix']) == "%") {
-                    $action = ((0 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
-                    $action = (int) $action;
-                }
-                else {
-                    $action = false;
+                    $value = $profile['MinValue'];
+                } else {
+                    $value = false;
                 }
             }
             elseif($data['header']['name'] == "SetPercentageRequest") {
                 if(trim($profile['Suffix']) == "%") {
-                    $action = (($data['payload']['percentageState']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
-                    $action = (int) $action;
+                    $value = $percentToValue($data['payload']['percentageState']['value']);
                 }
             }
-            elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
+            elseif($data['header']['name'] == "IncrementPercentageRequest") {
+                if (trim($profile['Suffix']) == "%") {
+                    $value = GetValue($targetID) + $percentToValue($data['payload']['deltaPercentage']['value']);
+                }
+            }
+            elseif($data['header']['name'] == "DecrementPercentageRequest") {
                 if(trim($profile['Suffix']) == "%") {
-                    $oldvalue = GetValue($data['payload']['appliance']['applianceId']);
-                    $newvalue = (($data['payload']['deltaPercentage']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
-                    if($data['header']['name'] == "IncrementPercentageRequest") {
-                        $action = $oldvalue + $newvalue;
-                        $action = (int) $action;
-                    }
-                    else {
-                        $action = $oldvalue - $newvalue;
-                        $action = (int) $action;
-                    }
+                    $value = GetValue($targetID) - $percentToValue($data['payload']['deltaPercentage']['value']);
                 }
             }
             elseif($data['header']['name'] == "SetTargetTemperatureRequest") {
                 if(trim($profile['Suffix']) == "°C") {
-                    $action = $data['payload']['targetTemperature']['value'];
+                    $value = $data['payload']['targetTemperature']['value'];
+                    $payload = Array();
                     $payload['targetTemperature']['value'] = $data['payload']['targetTemperature']['value'];
                     $payload['temperatureMode']['value'] = "AUTO";
-                    $payload['previousState']['targetTemperature']['value'] = GetValue($data['payload']['appliance']['applianceId']);
+                    $payload['previousState']['targetTemperature']['value'] = GetValue($targetID);
                     $payload['previousState']['mode']['value'] = "AUTO";
                 }
             }
             elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
                 if(trim($profile['Suffix']) == "°C") {
                     if($data['header']['name'] == "IncrementTargetTemperatureRequest") {
-                        $action = GetValue($data['payload']['appliance']['applianceId']) + $data['payload']['deltaTemperature']['value'];
+                        $value = GetValue($targetID) + $data['payload']['deltaTemperature']['value'];
                     }
                     elseif($data['header']['name'] == "DecrementTargetTemperatureRequest") {
-                        $action = GetValue($data['payload']['appliance']['applianceId']) - $data['payload']['deltaTemperature']['value'];
+                        $value = GetValue($targetID) - $data['payload']['deltaTemperature']['value'];
                     }
-                    $payload['targetTemperature']['value'] = $action;
+                    $payload = Array();
+                    $payload['targetTemperature']['value'] = $value;
                     $payload['temperatureMode']['value'] = "AUTO";
-                    $payload['previousState']['targetTemperature']['value'] = GetValue($data['payload']['appliance']['applianceId']);
+                    $payload['previousState']['targetTemperature']['value'] = GetValue($targetID);
                     $payload['previousState']['mode']['value'] = "AUTO";
                 }
             }
 
-            if(isset($action)) {
-                if($var['VariableCustomAction'] > 0) {
-                    IPS_RunScriptEx($var['VariableCustomAction'], Array("VARIABLE" => $data['payload']['appliance']['applianceId'], "VALUE" => $action));
-                } else {
-                    $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
-                    $this->SendDebug("RequestIdent",print_r($obj['ObjectIdent'],true),0);
-                    $this->SendDebug("RequestParent",print_r($obj['ParentID'],true),0);
-                    $this->SendDebug("RequestAction",print_r($action,true),0);
-                    IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
-                }
-            }
-            $result['header'] = $header;
-            if(isset($payload)) {
-                $result['payload'] = $payload;
-            }
-            else {
-                $result['payload'] = json_decode("{}");
+            if(!isset($value)) {
+                echo "Action value is missing";
+                return null;
             }
 
-            return $result;
+            if($targetVariable['VariableType'] == 0 /* Boolean */) {
+                $value = boolval($value);
+            } else if($targetVariable['VariableType'] == 1 /* Integer */) {
+                $value = intval($value);
+            } else if($targetVariable['VariableType'] == 2 /* Float */) {
+                $value = floatval($value);
+            } else {
+                echo "Strings are not supported";
+                return null;
+            }
+
+            if(IPS_InstanceExists($profileAction)) {
+                IPS_RunScriptText("IPS_RequestAction(".$profileAction.", ".$o['ObjectIdent'].", ".$value.");");
+            } else if(IPS_ScriptExists($profileAction)) {
+                IPS_RunScriptEx($profileAction, Array("VARIABLE" => $targetID, "VALUE" => $value));
+            }
+
         }
-        elseif($obj['ObjectType']== 3) {
+        elseif($o['ObjectType'] == 3 /* Script */) {
             if($data['header']['name']  == "TurnOnRequest") {
                 $action = true;
             }
             elseif($data['header']['name']  == "TurnOffRequest") {
                 $action = false;
             }
+
             if(isset($action)) {
-                IPS_RunScriptEx($data['payload']['appliance']['applianceId'], Array("VALUE" => $action));
+                IPS_RunScriptEx($targetID, Array("VALUE" => $action));
             }
-            $header['messageId'] = $this->GenUUID();
-            $header['namespace'] = $data['header']['namespace'];
-            $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
-            $header['payloadVersion'] = "2";
-            $result['header'] = $header;
-            $result['payload'] = json_decode("{}");
-            return $result;
         }
-        $header['messageId'] = $this->GenUUID();
-        $header['namespace'] = $data['header']['namespace'];
-        $header['name'] = str_replace("Request","Confirmation",$data['header']['name']);
-        $header['payloadVersion'] = "2";
-        $result['header'] = $header;
-        $result['payload'] = json_decode("{}");
-        return $result;
+
+        return Array(
+            'header' => Array(
+                'messageId' => $this->GenUUID(),
+                'namespace' => $data['header']['namespace'],
+                'name' => str_replace("Request","Confirmation",$data['header']['name']),
+                'payloadVersion' => "2"
+            ),
+            'payload' => $payload
+        );
+
     }
 
     protected function ProcessOAuthData() {
@@ -253,15 +300,28 @@ class IQL4SmartHome extends IPSModule {
         $this->SendDebug("IQL4SmartHomeRequest",print_r($data,true),0);
 
         if($data['header']['namespace'] == "Alexa.ConnectedHome.Discovery") {
-            $result = @$this->DeviceDiscovery($data);
+            ob_start();
+            $result = $this->DeviceDiscovery($data);
+            $error = ob_get_contents();
+            if($error != "") {
+                $this->SendDebug("IQL4SmartHomeError", $error, 0);
+            }
+            ob_end_clean();
             $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
             echo json_encode($result);
         }
         elseif($data['header']['namespace'] == "Alexa.ConnectedHome.Control") {
-            $result = @$this->DeviceControl($data);
+            ob_start();
+            $result = $this->DeviceControl($data);
+            $error = ob_get_contents();
+            if($error != "") {
+                $this->SendDebug("IQL4SmartHomeError", $error, 0);
+            }
+            ob_end_clean();
             $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
             echo json_encode($result);
         }
+
     }
 
     private function RegisterOAuth($WebOAuth) {
@@ -294,40 +354,25 @@ class IQL4SmartHome extends IPSModule {
             mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
     }
-    protected function GetAllChildIDs($parent) {
-        $children = IPS_GetChildrenIDs($parent);
-        foreach($children as $entry) {
-            if(IPS_GetObject($entry)['ObjectType'] == 0) {
-                $kategorie[] = $entry;
-            }
-            elseif(IPS_GetObject($entry)['ObjectType'] == 6) {
-                $return[] = IPS_GetObject($entry)['ObjectID'];
-            }
-        }
-        if(isset($kategorie)) {
-            foreach($kategorie as $locate) {
-                foreach($this->GetAllChildIDs($locate) as $newentry) {
-                    $return[] = $newentry;
-                }
+
+    protected function GetChildrenIDsRecursive($parentID, $appendIDs = Array()) {
+        foreach(IPS_GetChildrenIDs($parentID) as $childID) {
+            if(IPS_GetObject($childID)['ObjectType'] == 0 /* Category */) {
+                $appendIDs = $this->GetChildrenIDsRecursive($childID, $appendIDs);
+            } else {
+                $appendIDs[] = $childID;
             }
         }
-        return $return;
+        return $appendIDs;
     }
 
     public function GetConfigurationForm() {
-        $connectMod = IPS_GetInstanceListByModuleID("{9486D575-BE8C-4ED8-B5B5-20930E26DE6F}");
-        $connectIns = IPS_GetInstance($connectMod[0]);
-        if($connectIns['InstanceStatus'] != 102) {
-            $return = '{
-    "elements":
-    [
-		{ "type": "Label", "label": "Bitte ConnectControl Prüfen" }
-    ]
-}';
+        $ids = IPS_GetInstanceListByModuleID("{9486D575-BE8C-4ED8-B5B5-20930E26DE6F}");
+        if(IPS_GetInstance($ids[0])['InstanceStatus'] != 102) {
+            $message = "Error: Symcon Connect is not active!";
+        } else {
+            $message = "Symcon Connect is OK!";
         }
-        else {
-            $return = '{}';
-        }
-        return $return;
+        return '{"elements":[{"type":"Label","label":"Status: '.$message.'"}]}';
     }
 }

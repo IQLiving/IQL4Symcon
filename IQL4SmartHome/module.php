@@ -305,4 +305,18 @@ class IQL4SmartHome extends IPSModule {
         }
         return $return;
     }
+
+    public function GetConfigurationForm() {
+        $connectMod = IPS_GetInstanceListByModuleID("{9486D575-BE8C-4ED8-B5B5-20930E26DE6F}");
+        $connectIns = IPS_GetInstance($connectMod);
+        if($connectIns['InstanceStatus'] != 102) {
+            $return = '{
+    "elements":
+    [
+		{ "type": "Label", "label": "Bitte ConnectControl Prüfen" }
+    ]
+}';
+        }
+        return $return;
+    }
 }

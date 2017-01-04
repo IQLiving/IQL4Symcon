@@ -199,8 +199,10 @@ class IQL4SmartHome extends IPSModule {
                     IPS_RunScriptEx($var['VariableCustomAction'], Array("VARIABLE" => $data['payload']['appliance']['applianceId'], "VALUE" => $action));
                 } else {
                     $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
-                    IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
+                    $this->SendDebug("RequestIdent",print_r($obj['ObjectIdent'],true),0);
+                    $this->SendDebug("RequestParent",print_r($obj['ParentID'],true),0);
                     $this->SendDebug("RequestAction",print_r($action,true),0);
+                    IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
                 }
             }
             $result['header'] = $header;

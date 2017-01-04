@@ -31,7 +31,7 @@ class IQL4SmartHome extends IPSModule {
                 $objtarget = IPS_GetObject($target);
                 if($objtarget['ObjectType'] == 2) {
                     $vtarget = IPS_GetVariable($target);
-                    if($vtarget['VariableProfile'] == "") {
+                    if($vtarget['VariableCustomProfile'] != "") {
                         $vprofile = IPS_GetVariableProfile($vtarget['VariableCustomProfile']);
                     }
                     else {
@@ -127,7 +127,7 @@ class IQL4SmartHome extends IPSModule {
         $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
         if($obj['ObjectType'] == 2) {
             $var = IPS_GetVariable($data['payload']['appliance']['applianceId']);
-            if($var['VariableProfile'] == "") {
+            if($var['VariableCustomProfile'] != "") {
                 $profile = IPS_GetVariableProfile($var['VariableCustomProfile']);
             }
             else {

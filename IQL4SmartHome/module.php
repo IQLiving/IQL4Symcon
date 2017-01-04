@@ -156,6 +156,7 @@ class IQL4SmartHome extends IPSModule {
             elseif($data['header']['name'] == "SetPercentageRequest") {
                 if(trim($profile['Suffix']) == "%") {
                     $action = (($data['payload']['percentageState']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+                    $action = (int) $action;
                 }
             }
             elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
@@ -164,9 +165,11 @@ class IQL4SmartHome extends IPSModule {
                     $newvalue = (($data['payload']['deltaPercentage']['value'] / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
                     if($data['header']['name'] == "IncrementPercentageRequest") {
                         $action = $oldvalue + $newvalue;
+                        $action = (int) $action;
                     }
                     else {
                         $action = $oldvalue - $newvalue;
+                        $action = (int) $action;
                     }
                 }
             }

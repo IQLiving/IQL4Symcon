@@ -308,7 +308,7 @@ class IQL4SmartHome extends IPSModule {
 
     public function GetConfigurationForm() {
         $connectMod = IPS_GetInstanceListByModuleID("{9486D575-BE8C-4ED8-B5B5-20930E26DE6F}");
-        $connectIns = IPS_GetInstance($connectMod);
+        $connectIns = IPS_GetInstance($connectMod[0]);
         if($connectIns['InstanceStatus'] != 102) {
             $return = '{
     "elements":

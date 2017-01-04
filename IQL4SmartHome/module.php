@@ -140,6 +140,7 @@ class IQL4SmartHome extends IPSModule {
             if($data['header']['name']  == "TurnOnRequest") {
                 if(trim($profile['Suffix']) == "%") {
                     $action = ((100 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+                    $action = (int) $action;
                 }
                 else {
                     $action = true;
@@ -148,6 +149,7 @@ class IQL4SmartHome extends IPSModule {
             elseif($data['header']['name']  == "TurnOffRequest") {
                 if(trim($profile['Suffix']) == "%") {
                     $action = ((0 / 100) * ($profile['MaxValue'] - $profile['MinValue']) + $profile['MinValue']);
+                    $action = (int) $action;
                 }
                 else {
                     $action = false;

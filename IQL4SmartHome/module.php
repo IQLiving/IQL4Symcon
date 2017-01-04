@@ -200,6 +200,7 @@ class IQL4SmartHome extends IPSModule {
                 } else {
                     $obj = IPS_GetObject($data['payload']['appliance']['applianceId']);
                     IPS_RequestAction($obj['ParentID'],$obj['ObjectIdent'],$action);
+                    $this->SendDebug("RequestAction",$action,0);
                 }
             }
             $result['header'] = $header;

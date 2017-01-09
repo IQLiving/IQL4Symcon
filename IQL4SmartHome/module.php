@@ -263,7 +263,7 @@ class IQL4SmartHome extends IPSModule {
             }
 
             if(IPS_InstanceExists($profileAction)) {
-                IPS_RunScriptText("IPS_RequestAction(".$profileAction.", ".$o['ObjectIdent'].", ".$value.");");
+                IPS_RunScriptText("IPS_RequestAction(".var_export($profileAction, true).", ".var_export($o['ObjectIdent'], true).", ".var_export($value, true).");");
             } else if(IPS_ScriptExists($profileAction)) {
                 IPS_RunScriptEx($profileAction, Array("VARIABLE" => $targetID, "VALUE" => $value));
             }

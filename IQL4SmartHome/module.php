@@ -353,7 +353,7 @@ class IQL4SmartHome extends IPSModule {
             }
 
             if(isset($action)) {
-                IPS_RunScriptEx($targetID, Array("VALUE" => $action));
+                IPS_RunScriptEx($targetID, Array("VALUE" => $action, "SENDER" => "AlexaSmartHome"));
             }
         }
 

@@ -42,6 +42,26 @@ class IQL4SmartHome extends IPSModule {
 
     }
 
+    private function GetProfileForVariable($variable) {
+
+        if ($variable['VariableCustomProfile'] != "") {
+            return $variable['VariableCustomProfile'];
+        } else {
+            return $variable['VariableProfile'];
+        }
+
+    }
+
+    private function GetActionForVariable($variable) {
+
+        if ($variable['VariableCustomAction'] > 0) {
+            return $variable['VariableCustomAction'];
+        } else {
+            return $variable['VariableAction'];
+        }
+
+    }
+
     private function BuildBasicAppliance($objectID, $targetID, $actionID) {
 
         $moduleName = "Generic Device";
@@ -104,12 +124,7 @@ class IQL4SmartHome extends IPSModule {
 
             if($targetObject['ObjectType'] == 2 /* Variable */) {
                 $targetVariable = IPS_GetVariable($targetID);
-
-                if ($targetVariable['VariableCustomProfile'] != "") {
-                    $profileName = $targetVariable['VariableCustomProfile'];
-                } else {
-                    $profileName = $targetVariable['VariableProfile'];
-                }
+                $profileName = $this->GetProfileForVariable($targetVariable);
 
                 if (!IPS_VariableProfileExists($profileName))
                     continue;
@@ -122,11 +137,7 @@ class IQL4SmartHome extends IPSModule {
                 if (sizeof($actions) == 0)
                     continue;
 
-                if ($targetVariable['VariableCustomAction'] != "") {
-                    $profileAction = $targetVariable['VariableCustomAction'];
-                } else {
-                    $profileAction = $targetVariable['VariableAction'];
-                }
+                $profileAction = $this->GetActionForVariable($targetVariable);
 
                 $appliance = $this->BuildBasicAppliance($childID, $targetID, $profileAction);
                 $appliance["isReachable"] = $profileAction > 10000;
@@ -157,6 +168,69 @@ class IQL4SmartHome extends IPSModule {
                 'discoveredAppliances' => $appliances
             )
         );
+
+    }
+
+    private function DiscoveryCheck() {
+
+        $checkResult = Array();
+
+        $childrenIDs = $this->GetChildrenIDsRecursive($this->InstanceID);
+
+        $appliances = Array();
+        foreach($childrenIDs as $childID) {
+
+            //We are only interested in links
+            if(IPS_GetObject($childID)['ObjectType'] != 6) {
+                $checkResult[$childID] = "Object is not a link";
+                continue;
+            }
+
+            $targetID = IPS_GetLink($childID)['TargetID'];
+
+            //Check supported types
+            $targetObject = IPS_GetObject($targetID);
+
+            if($targetObject['ObjectType'] == 2 /* Variable */) {
+                $targetVariable = IPS_GetVariable($targetID);
+                $profileName = $this->GetProfileForVariable($targetVariable);
+
+                if (!IPS_VariableProfileExists($profileName)) {
+                    $checkResult[$childID] = "Profile is missing";
+                    continue;
+                }
+
+                $profile = IPS_GetVariableProfile($profileName);
+
+                $actions = $this->GetActionsForProfile($profile);
+
+                //only allow devices which have actions
+                if (sizeof($actions) == 0) {
+                    $checkResult[$childID] = "Profile is not compatible";
+                    continue;
+                }
+
+                $profileAction = $this->GetActionForVariable($targetVariable);
+
+                if($profileAction <= 10000) {
+                    $checkResult[$childID] = "Action is not missing or disabled";
+                    continue;
+                }
+
+                $checkResult[$childID] = "OK";
+
+            } elseif($targetObject['ObjectType'] == 3 /* Script */) {
+
+                $checkResult[$childID] = "OK";
+
+            } else {
+
+                $checkResult[$childID] = "Unsupported Objecttype";
+
+            }
+        }
+
+        return $checkResult;
 
     }
 
@@ -368,12 +442,30 @@ class IQL4SmartHome extends IPSModule {
     }
 
     public function GetConfigurationForm() {
+
+        $form = Array(
+            "elements" => Array()
+        );
+
+        //Check Connect service
         $ids = IPS_GetInstanceListByModuleID("{9486D575-BE8C-4ED8-B5B5-20930E26DE6F}");
         if(IPS_GetInstance($ids[0])['InstanceStatus'] != 102) {
             $message = "Error: Symcon Connect is not active!";
         } else {
-            $message = "Symcon Connect is OK!";
+            $message = "Status: Symcon Connect is OK!";
         }
-        return '{"elements":[{"type":"Label","label":"Status: '.$message.'"}]}';
+
+        $form['elements'][] = Array("type" => "Label", "label" => $message);
+
+        //Add spacing
+        $form['elements'][] = Array("type" => "Label", "label" => "----------------------------------------------------" );
+
+        //Check Devices
+        $devices = $this->DiscoveryCheck();
+        foreach($devices as $id => $message) {
+            $form['elements'][] = Array("type" => "Label", "label" => IPS_GetName($id) . ": " . $message);
+        }
+
+        return json_encode($form);
     }
 }

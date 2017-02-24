@@ -213,7 +213,7 @@ class IQL4SmartHome extends IPSModule {
                 $profileAction = $this->GetActionForVariable($targetVariable);
 
                 if($profileAction <= 10000) {
-                    $checkResult[$childID] = "Action is not missing or disabled";
+                    $checkResult[$childID] = "Action is missing or disabled";
                     continue;
                 }
 

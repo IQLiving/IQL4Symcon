@@ -7,16 +7,16 @@
 
 ## Installation
 
-1. Use Core -> Modules to install a new PHP Module. [Open Module]([https://github.com/IQLiving/IQL4Symcon)
+1. Use Core -> Modules to install a new PHP Module. [Open Module](https://github.com/IQLiving/IQL4Symcon)
 2. Create the IQL4SmartHome instance in IP-Symcon
 3. Verify that the instance shows "Symcon Connect is OK"
-4. Add links to switchable variables beneath the IQL4SmartHome instance. (Hint: Not instances!)
+4. Add links to switchable variables beneath the IQL4SmartHome instance. (Remark: No instances!)
 5. Reopen the IQL4SmartHome instance and check that every link is marked as OK
 6. Link your Alexa account with the Symcon Skill. [Open Skill](http://alexa.amazon.de/spa/index.html#skills/dp/B01MY4T8EN/?ref=skill_dsk_skb_sr_0)
 7. Search for new devices in the Alexa app
 8. Have fun with Alexa and IP-Symcon
 
-## Hints
+## Remarks
 
 - A valid subscription is required to use the Symcon Connect service
 - Links may be added in categories beneath the IQL4SmartHome instance (The category names are not evaluated)

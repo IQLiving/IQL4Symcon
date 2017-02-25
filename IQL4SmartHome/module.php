@@ -351,6 +351,18 @@ class IQL4SmartHome extends IPSModule {
             elseif($data['header']['name']  == "TurnOffRequest") {
                 $action = false;
             }
+			elseif($data['header']['name'] == "SetPercentageRequest") {
+				$action = $data['payload']['percentageState']['value'];
+			}
+			elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
+				$action = $data['payload']['deltaPercentage']['value'];
+			}
+			elseif($data['header']['name'] == "SetTargetTemperatureRequest") {
+				$action = $data['payload']['targetTemperature']['value'];
+			}
+			elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
+				$action = $data['payload']['deltaTemperature']['value'];
+			}
 
             if(isset($action)) {
                 IPS_RunScriptEx($targetID, Array("VALUE" => $action, "SENDER" => "AlexaSmartHome"));

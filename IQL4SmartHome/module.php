@@ -10,6 +10,8 @@ class IQL4SmartHome extends IPSModule {
         //Never delete this line!
         parent::Create();
 
+        $this->RegisterPropertyString("Sender","AlexaSmartHome");
+
     }
 
     public function ApplyChanges() {
@@ -340,7 +342,7 @@ class IQL4SmartHome extends IPSModule {
             if(IPS_InstanceExists($profileAction)) {
                 IPS_RunScriptText("IPS_RequestAction(".var_export($profileAction, true).", ".var_export($o['ObjectIdent'], true).", ".var_export($value, true).");");
             } else if(IPS_ScriptExists($profileAction)) {
-                IPS_RunScriptEx($profileAction, Array("VARIABLE" => $targetID, "VALUE" => $value, "SENDER" => "AlexaSmartHome"));
+                IPS_RunScriptEx($profileAction, Array("VARIABLE" => $targetID, "VALUE" => $value, "SENDER" => $this->ReadPropertyString("Sender")));
             }
 
         }
@@ -365,7 +367,7 @@ class IQL4SmartHome extends IPSModule {
 			}
 
             if(isset($action)) {
-                IPS_RunScriptEx($targetID, Array("VALUE" => $action, "SENDER" => "AlexaSmartHome"));
+                IPS_RunScriptEx($targetID, Array("VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender")));
             }
         }
 

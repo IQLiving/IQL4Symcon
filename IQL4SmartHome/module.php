@@ -3,7 +3,8 @@ class IQL4SmartHome extends IPSModule {
 
     private $switchFunctions = Array("turnOn", "turnOff");
     private $dimmingFunctions = Array("setPercentage", "incrementPercentage", "decrementPercentage");
-    private $temperatureFunctions = Array("setTargetTemperature", "incrementTargetTemperature", "decrementTargetTemperature");
+    private $targetTemperatureFunctions = Array("setTargetTemperature", "incrementTargetTemperature", "decrementTargetTemperature", "getTargetTemperature");
+    private $readingTemperatureFunctions = Array("getTemperatureReading");
 
     public function Create() {
 
@@ -11,6 +12,7 @@ class IQL4SmartHome extends IPSModule {
         parent::Create();
 
         $this->RegisterPropertyString("Sender","AlexaSmartHome");
+        $this->RegisterPropertyString("Devices", "");
 
     }
 
@@ -23,22 +25,29 @@ class IQL4SmartHome extends IPSModule {
 
     }
 
-    private function GetActionsForProfile($profile) {
+    private function GetActionsForProfile($profile, $profileAction) {
 
-        if(($profile['ProfileType'] < 0) or ($profile['ProfileType'] >= 3))
+        if(($profile['ProfileType'] < 0) or ($profile['ProfileType'] >= 3)) {
             return Array();
+        }
 
         //Support all Boolean profile
-        if($profile['ProfileType'] == 0)
+        if($profile['ProfileType'] == 0) {
             return $this->switchFunctions;
+        }
 
         //Support percent suffix
-        if(trim($profile['Suffix']) == "%")
+        if(trim($profile['Suffix']) == "%") {
             return array_merge($this->switchFunctions, $this->dimmingFunctions);
+        }
 
         //Support temperature suffix
-        if(trim($profile['Suffix']) == "°C")
-            return $this->temperatureFunctions;
+        if(trim($profile['Suffix']) == "°C" and $profileAction > 10000) {
+            return $this->targetTemperatureFunctions;
+        }
+        elseif(trim($profile['Suffix']) == "°C") {
+            return $this->readingTemperatureFunctions;
+        }
 
         return Array();
 
@@ -132,17 +141,15 @@ class IQL4SmartHome extends IPSModule {
                     continue;
 
                 $profile = IPS_GetVariableProfile($profileName);
-
-                $actions = $this->GetActionsForProfile($profile);
+                $profileAction = $this->GetActionForVariable($targetVariable);
+                $actions = $this->GetActionsForProfile($profile, $profileAction);
 
                 //only allow devices which have actions
                 if (sizeof($actions) == 0)
                     continue;
 
-                $profileAction = $this->GetActionForVariable($targetVariable);
-
                 $appliance = $this->BuildBasicAppliance($childID, $targetID, $profileAction);
-                $appliance["isReachable"] = $profileAction > 10000;
+                $appliance["isReachable"] = true;
                 $appliance['actions'] = $actions;
 
                 //append to discovered devices
@@ -151,7 +158,7 @@ class IQL4SmartHome extends IPSModule {
             } elseif($targetObject['ObjectType'] == 3 /* Script */) {
 
                 $appliance = $this->BuildBasicAppliance($childID, $targetID, $targetID);
-                $appliance['actions'] = array_merge($this->switchFunctions, $this->dimmingFunctions,$this->temperatureFunctions);
+                $appliance['actions'] = array_merge($this->switchFunctions, $this->dimmingFunctions,$this->targetTemperatureFunctions);
 
                 //append to discovered devices
                 $appliances[] = $appliance;
@@ -203,19 +210,12 @@ class IQL4SmartHome extends IPSModule {
                 }
 
                 $profile = IPS_GetVariableProfile($profileName);
-
-                $actions = $this->GetActionsForProfile($profile);
+                $profileAction = $this->GetActionForVariable($targetVariable);
+                $actions = $this->GetActionsForProfile($profile, $profileAction);
 
                 //only allow devices which have actions
                 if (sizeof($actions) == 0) {
                     $checkResult[$childID] = "Profile is not compatible";
-                    continue;
-                }
-
-                $profileAction = $this->GetActionForVariable($targetVariable);
-
-                if($profileAction <= 10000) {
-                    $checkResult[$childID] = "Action is missing or disabled";
                     continue;
                 }
 
@@ -383,6 +383,34 @@ class IQL4SmartHome extends IPSModule {
 
     }
 
+    private function DeviceQuery (array $data) {
+        $payload = new stdClass;
+        $targetID = $data['payload']['appliance']['applianceId'];
+        $o = IPS_GetObject($targetID);
+
+        if($o['ObjectType'] == 2 /* Variable */) {
+            if($data['header']['name']  == "GetTargetTemperatureRequest") {
+                $payload = Array();
+                $payload['targetTemperature']['value'] = GetValue($targetID);
+                $payload['temperatureMode']['value'] = "AUTO";
+            }
+            elseif($data['header']['name']  == "GetTemperatureReadingRequest") {
+                $payload = Array();
+                $payload['temperatureReading']['value'] = GetValue($targetID);
+            }
+        }
+
+        return Array(
+            'header' => Array(
+                'messageId' => $this->GenUUID(),
+                'namespace' => $data['header']['namespace'],
+                'name' => str_replace("Request","Response",$data['header']['name']),
+                'payloadVersion' => "2"
+            ),
+            'payload' => $payload
+        );
+    }
+
     protected function ProcessOAuthData() {
         $jsonRequest = file_get_contents('php://input');
         $data = json_decode($jsonRequest,true);
@@ -410,7 +438,17 @@ class IQL4SmartHome extends IPSModule {
             $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
             echo json_encode($result);
         }
-
+        elseif($data['header']['namespace'] == "Alexa.ConnectedHome.Query") {
+            ob_start();
+            $result = $this->DeviceQuery($data);
+            $error = ob_get_contents();
+            if($error != "") {
+                $this->SendDebug("IQL4SmartHomeError", $error, 0);
+            }
+            ob_end_clean();
+            $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
+            echo json_encode($result);
+        }
     }
 
     private function RegisterOAuth($WebOAuth) {

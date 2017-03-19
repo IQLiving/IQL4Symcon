@@ -150,7 +150,7 @@ class IQL4SmartHome extends IPSModule {
                     continue;
 
                 $appliance = $this->BuildBasicAppliance($childID, $targetID, $profileAction);
-                $appliance["isReachable"] = in_array($this->readingTemperatureFunctions, $actions) || $profileAction > 10000;
+                $appliance["isReachable"] = in_array($this->readingTemperatureFunctions, array($actions)) || $profileAction > 10000;
                 $appliance['actions'] = $actions;
 
                 //append to discovered devices

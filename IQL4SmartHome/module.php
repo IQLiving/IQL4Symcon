@@ -412,7 +412,12 @@ class IQL4SmartHome extends IPSModule {
 
     private function DeviceQuery (array $data) {
         $payload = new stdClass;
-        $targetID = $data['payload']['appliance']['applianceId'];
+        if(IPS_GetObject($data['payload']['appliance']['applianceId'])['ObjectType'] == 6) {
+            $targetID = IPS_GetLink($data['payload']['appliance']['applianceId'])['TargetID'];
+        }
+        else {
+            $targetID = $data['payload']['appliance']['applianceId'];
+        }
         $o = IPS_GetObject($targetID);
 
         if($o['ObjectType'] == 2 /* Variable */) {

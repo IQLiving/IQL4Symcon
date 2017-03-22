@@ -1,7 +1,8 @@
 {
   "translations": {
     "de": {
-      "Emulate status": "Status emulieren"
+      "Emulate status": "Status emulieren",
+      "Multiple linking": "Mehrfachverlinkung"
     }
   }
 }

@@ -14,6 +14,7 @@ class IQL4SmartHome extends IPSModule {
         $this->RegisterPropertyString("Sender","AlexaSmartHome");
         $this->RegisterPropertyString("Devices", "");
         $this->RegisterPropertyBoolean("EmulateStatus",true);
+        $this->RegisterPropertyBoolean("MultipleLinking",false);
     }
 
     public function ApplyChanges() {
@@ -105,8 +106,15 @@ class IQL4SmartHome extends IPSModule {
             $moduleName = "Generic Script";
         }
 
+        if($this->ReadPropertyBoolean("MultipleLinking") == true) {
+            $deviceID = $objectID;
+        }
+        else {
+            $deviceID = $targetID;
+        }
+
         return Array(
-            'applianceId' => $targetID,
+            'applianceId' => $deviceID,
             'manufacturerName' => $moduleVendor,
             'modelName' => $moduleName,
             'friendlyName' => $friendlyName,
@@ -241,7 +249,13 @@ class IQL4SmartHome extends IPSModule {
 
         $payload = new stdClass;
         $headerName = str_replace("Request","Confirmation",$data['header']['name']);
-        $targetID = $data['payload']['appliance']['applianceId'];
+        if(IPS_GetObject($data['payload']['appliance']['applianceId'])['ObjectType'] == 6) {
+            $targetID = IPS_GetLink($data['payload']['appliance']['applianceId'])['TargetID'];
+        }
+        else {
+            $targetID = $data['payload']['appliance']['applianceId'];
+        }
+
         $o = IPS_GetObject($targetID);
 
         if($o['ObjectType'] == 2 /* Variable */) {
@@ -520,6 +534,7 @@ class IQL4SmartHome extends IPSModule {
             $message = "Status: Symcon Connect is OK!";
         }
         $form['elements'][] = Array("type" => "CheckBox", "name" => "EmulateStatus", "caption" => "Emulate status");
+        $form['elements'][] = Array("type" => "CheckBox", "name" => "MultipleLinking", "caption" => "Multiple linking");
 
         $form['elements'][] = Array("type" => "Label", "label" => $message);
 

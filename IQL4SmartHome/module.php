@@ -3,7 +3,8 @@ class IQL4SmartHome extends IPSModule {
 
     private $switchFunctions = Array("turnOn", "turnOff");
     private $dimmingFunctions = Array("setPercentage", "incrementPercentage", "decrementPercentage");
-    private $temperatureFunctions = Array("setTargetTemperature", "incrementTargetTemperature", "decrementTargetTemperature");
+    private $targetTemperatureFunctions = Array("setTargetTemperature", "incrementTargetTemperature", "decrementTargetTemperature", "getTargetTemperature");
+    private $readingTemperatureFunctions = Array("getTemperatureReading");
 
     public function Create() {
 
@@ -11,7 +12,9 @@ class IQL4SmartHome extends IPSModule {
         parent::Create();
 
         $this->RegisterPropertyString("Sender","AlexaSmartHome");
-
+        $this->RegisterPropertyString("Devices", "");
+        $this->RegisterPropertyBoolean("EmulateStatus",true);
+        $this->RegisterPropertyBoolean("MultipleLinking",false);
     }
 
     public function ApplyChanges() {
@@ -23,22 +26,30 @@ class IQL4SmartHome extends IPSModule {
 
     }
 
-    private function GetActionsForProfile($profile) {
+    private function GetActionsForProfile($profile, $profileAction) {
 
-        if(($profile['ProfileType'] < 0) or ($profile['ProfileType'] >= 3))
+        if(($profile['ProfileType'] < 0) or ($profile['ProfileType'] >= 3)) {
             return Array();
+        }
 
         //Support all Boolean profile
-        if($profile['ProfileType'] == 0)
+        if($profile['ProfileType'] == 0) {
             return $this->switchFunctions;
+        }
 
         //Support percent suffix
-        if(trim($profile['Suffix']) == "%")
+        if(trim($profile['Suffix']) == "%") {
             return array_merge($this->switchFunctions, $this->dimmingFunctions);
+        }
 
         //Support temperature suffix
-        if(trim($profile['Suffix']) == "°C")
-            return $this->temperatureFunctions;
+        if(trim($profile['Suffix']) == "°C") {
+            if ($profileAction > 10000) {
+                return $this->targetTemperatureFunctions;
+            } else {
+                return $this->readingTemperatureFunctions;
+            }
+        }
 
         return Array();
 
@@ -95,8 +106,15 @@ class IQL4SmartHome extends IPSModule {
             $moduleName = "Generic Script";
         }
 
+        if($this->ReadPropertyBoolean("MultipleLinking") == true) {
+            $deviceID = $objectID;
+        }
+        else {
+            $deviceID = $targetID;
+        }
+
         return Array(
-            'applianceId' => $targetID,
+            'applianceId' => $deviceID,
             'manufacturerName' => $moduleVendor,
             'modelName' => $moduleName,
             'friendlyName' => $friendlyName,
@@ -132,17 +150,15 @@ class IQL4SmartHome extends IPSModule {
                     continue;
 
                 $profile = IPS_GetVariableProfile($profileName);
-
-                $actions = $this->GetActionsForProfile($profile);
+                $profileAction = $this->GetActionForVariable($targetVariable);
+                $actions = $this->GetActionsForProfile($profile, $profileAction);
 
                 //only allow devices which have actions
                 if (sizeof($actions) == 0)
                     continue;
 
-                $profileAction = $this->GetActionForVariable($targetVariable);
-
                 $appliance = $this->BuildBasicAppliance($childID, $targetID, $profileAction);
-                $appliance["isReachable"] = $profileAction > 10000;
+                $appliance["isReachable"] = in_array($this->readingTemperatureFunctions, array($actions)) || $profileAction > 10000;
                 $appliance['actions'] = $actions;
 
                 //append to discovered devices
@@ -151,7 +167,7 @@ class IQL4SmartHome extends IPSModule {
             } elseif($targetObject['ObjectType'] == 3 /* Script */) {
 
                 $appliance = $this->BuildBasicAppliance($childID, $targetID, $targetID);
-                $appliance['actions'] = array_merge($this->switchFunctions, $this->dimmingFunctions,$this->temperatureFunctions);
+                $appliance['actions'] = array_merge($this->switchFunctions, $this->dimmingFunctions, $this->targetTemperatureFunctions);
 
                 //append to discovered devices
                 $appliances[] = $appliance;
@@ -203,19 +219,12 @@ class IQL4SmartHome extends IPSModule {
                 }
 
                 $profile = IPS_GetVariableProfile($profileName);
-
-                $actions = $this->GetActionsForProfile($profile);
+                $profileAction = $this->GetActionForVariable($targetVariable);
+                $actions = $this->GetActionsForProfile($profile, $profileAction);
 
                 //only allow devices which have actions
                 if (sizeof($actions) == 0) {
                     $checkResult[$childID] = "Profile is not compatible";
-                    continue;
-                }
-
-                $profileAction = $this->GetActionForVariable($targetVariable);
-
-                if($profileAction <= 10000) {
-                    $checkResult[$childID] = "Action is missing or disabled";
                     continue;
                 }
 
@@ -239,7 +248,14 @@ class IQL4SmartHome extends IPSModule {
     private function DeviceControl(array $data) {
 
         $payload = new stdClass;
-        $targetID = $data['payload']['appliance']['applianceId'];
+        $headerName = str_replace("Request","Confirmation",$data['header']['name']);
+        if(IPS_GetObject($data['payload']['appliance']['applianceId'])['ObjectType'] == 6) {
+            $targetID = IPS_GetLink($data['payload']['appliance']['applianceId'])['TargetID'];
+        }
+        else {
+            $targetID = $data['payload']['appliance']['applianceId'];
+        }
+
         $o = IPS_GetObject($targetID);
 
         if($o['ObjectType'] == 2 /* Variable */) {
@@ -340,8 +356,14 @@ class IQL4SmartHome extends IPSModule {
             }
 
             if(IPS_InstanceExists($profileAction)) {
-                IPS_RunScriptText("IPS_RequestAction(".var_export($profileAction, true).", ".var_export($o['ObjectIdent'], true).", ".var_export($value, true).");");
-            } else if(IPS_ScriptExists($profileAction)) {
+                if($this->ReadPropertyBoolean("EmulateStatus") == true) {
+                    IPS_RunScriptText("IPS_RequestAction(".var_export($profileAction, true).", ".var_export($o['ObjectIdent'], true).", ".var_export($value, true).");");
+                }
+                else {
+                    $result = IPS_RequestAction($profileAction, $o['ObjectIdent'], $value);
+                }
+
+            } elseif(IPS_ScriptExists($profileAction)) {
                 IPS_RunScriptEx($profileAction, Array("VARIABLE" => $targetID, "VALUE" => $value, "SENDER" => $this->ReadPropertyString("Sender")));
             }
 
@@ -370,17 +392,55 @@ class IQL4SmartHome extends IPSModule {
                 IPS_RunScriptEx($targetID, Array("VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender")));
             }
         }
+        
+        if(isset($result)) {
+            if($result == false) {
+                $headerName = 'TargetHardwareMalfunctionError';
+                $payload = new stdClass;
+            }
+        }
+        return Array(
+            'header' => Array(
+                'messageId' => $this->GenUUID(),
+                'namespace' => $data['header']['namespace'],
+                'name' => $headerName,
+                'payloadVersion' => "2"
+            ),
+            'payload' => $payload
+        );
+    }
+
+    private function DeviceQuery (array $data) {
+        $payload = new stdClass;
+        if(IPS_GetObject($data['payload']['appliance']['applianceId'])['ObjectType'] == 6) {
+            $targetID = IPS_GetLink($data['payload']['appliance']['applianceId'])['TargetID'];
+        }
+        else {
+            $targetID = $data['payload']['appliance']['applianceId'];
+        }
+        $o = IPS_GetObject($targetID);
+
+        if($o['ObjectType'] == 2 /* Variable */) {
+            if($data['header']['name']  == "GetTargetTemperatureRequest") {
+                $payload = Array();
+                $payload['targetTemperature']['value'] = GetValue($targetID);
+                $payload['temperatureMode']['value'] = "AUTO";
+            }
+            elseif($data['header']['name']  == "GetTemperatureReadingRequest") {
+                $payload = Array();
+                $payload['temperatureReading']['value'] = GetValue($targetID);
+            }
+        }
 
         return Array(
             'header' => Array(
                 'messageId' => $this->GenUUID(),
                 'namespace' => $data['header']['namespace'],
-                'name' => str_replace("Request","Confirmation",$data['header']['name']),
+                'name' => str_replace("Request","Response",$data['header']['name']),
                 'payloadVersion' => "2"
             ),
             'payload' => $payload
         );
-
     }
 
     protected function ProcessOAuthData() {
@@ -410,7 +470,17 @@ class IQL4SmartHome extends IPSModule {
             $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
             echo json_encode($result);
         }
-
+        elseif($data['header']['namespace'] == "Alexa.ConnectedHome.Query") {
+            ob_start();
+            $result = $this->DeviceQuery($data);
+            $error = ob_get_contents();
+            if($error != "") {
+                $this->SendDebug("IQL4SmartHomeError", $error, 0);
+            }
+            ob_end_clean();
+            $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
+            echo json_encode($result);
+        }
     }
 
     private function RegisterOAuth($WebOAuth) {
@@ -468,6 +538,8 @@ class IQL4SmartHome extends IPSModule {
         } else {
             $message = "Status: Symcon Connect is OK!";
         }
+        $form['elements'][] = Array("type" => "CheckBox", "name" => "EmulateStatus", "caption" => "Emulate status");
+        $form['elements'][] = Array("type" => "CheckBox", "name" => "MultipleLinking", "caption" => "Multiple linking");
 
         $form['elements'][] = Array("type" => "Label", "label" => $message);
 

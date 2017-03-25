@@ -249,6 +249,7 @@ class IQL4SmartHome extends IPSModule {
 
         $payload = new stdClass;
         $headerName = str_replace("Request","Confirmation",$data['header']['name']);
+        $sourceID = $data['payload']['appliance']['applianceId'];
         if(IPS_GetObject($data['payload']['appliance']['applianceId'])['ObjectType'] == 6) {
             $targetID = IPS_GetLink($data['payload']['appliance']['applianceId'])['TargetID'];
         }
@@ -389,7 +390,7 @@ class IQL4SmartHome extends IPSModule {
 			}
 
             if(isset($action)) {
-                IPS_RunScriptEx($targetID, Array("VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender")));
+                IPS_RunScriptEx($targetID, Array("VARIABLE" => $sourceID, "VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender")));
             }
         }
         

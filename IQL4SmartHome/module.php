@@ -390,7 +390,7 @@ class IQL4SmartHome extends IPSModule {
 			}
 
             if(isset($action)) {
-                IPS_RunScriptEx($targetID, Array("VARIABLE" => $sourceID, "VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender")));
+                IPS_RunScriptEx($targetID, Array("VARIABLE" => $sourceID, "VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender"), "REQUEST" => $data['header']['name']));
             }
         }
         

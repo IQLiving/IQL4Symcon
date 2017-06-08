@@ -15,6 +15,7 @@ class IQL4SmartHome extends IPSModule {
         $this->RegisterPropertyString("Devices", "");
         $this->RegisterPropertyBoolean("EmulateStatus",true);
         $this->RegisterPropertyBoolean("MultipleLinking",false);
+        $this->RegisterPropertyBoolean("AlternateOff",false);
     }
 
     public function ApplyChanges() {
@@ -293,12 +294,19 @@ class IQL4SmartHome extends IPSModule {
                 }
             }
             elseif($data['header']['name']  == "TurnOffRequest") {
-                if(trim($profile['Suffix']) == "%") {
-                    $value = $profile['MinValue'];
-                } else {
-                    $value = false;
+                if($this->ReadPropertyBoolean("AlternateOff") == false) {
+                        if(trim($profile['Suffix']) == "%") {
+                        $value = $profile['MinValue'];
+                        } else {
+                        $value = false;
+                        }
                 }
+                if($this->ReadPropertyBoolean("AlternateOff") == true) {
+                 if(trim($profile['Suffix']) != "%") {
+                        $value = false;
+                        }
             }
+        }
             elseif($data['header']['name'] == "SetPercentageRequest") {
                 if(trim($profile['Suffix']) == "%") {
                     $value = $percentToValue($data['payload']['percentageState']['value']);
@@ -376,24 +384,24 @@ class IQL4SmartHome extends IPSModule {
             elseif($data['header']['name']  == "TurnOffRequest") {
                 $action = false;
             }
-			elseif($data['header']['name'] == "SetPercentageRequest") {
-				$action = $data['payload']['percentageState']['value'];
-			}
-			elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
-				$action = $data['payload']['deltaPercentage']['value'];
-			}
-			elseif($data['header']['name'] == "SetTargetTemperatureRequest") {
-				$action = $data['payload']['targetTemperature']['value'];
-			}
-			elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
-				$action = $data['payload']['deltaTemperature']['value'];
-			}
+                        elseif($data['header']['name'] == "SetPercentageRequest") {
+                                $action = $data['payload']['percentageState']['value'];
+                        }
+                        elseif($data['header']['name'] == "IncrementPercentageRequest" or $data['header']['name'] == "DecrementPercentageRequest") {
+                                $action = $data['payload']['deltaPercentage']['value'];
+                        }
+                        elseif($data['header']['name'] == "SetTargetTemperatureRequest") {
+                                $action = $data['payload']['targetTemperature']['value'];
+                        }
+                        elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
+                                $action = $data['payload']['deltaTemperature']['value'];
+                        }
 
             if(isset($action)) {
                 IPS_RunScriptEx($targetID, Array("VARIABLE" => $sourceID, "VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender"), "REQUEST" => $data['header']['name']));
             }
         }
-        
+
         if(isset($result)) {
             if($result == false) {
                 $headerName = 'TargetHardwareMalfunctionError';
@@ -541,6 +549,7 @@ class IQL4SmartHome extends IPSModule {
         }
         $form['elements'][] = Array("type" => "CheckBox", "name" => "EmulateStatus", "caption" => "Emulate status");
         $form['elements'][] = Array("type" => "CheckBox", "name" => "MultipleLinking", "caption" => "Multiple linking");
+        $form['elements'][] = Array("type" => "CheckBox", "name" => "AlternateOff", "caption" => "OFF sets state not intensity");
 
         $form['elements'][] = Array("type" => "Label", "label" => $message);
 

@@ -2,7 +2,8 @@
   "translations": {
     "de": {
       "Emulate status": "Status emulieren",
-      "Multiple linking": "Mehrfachverlinkung"
+      "Multiple linking": "Mehrfachverlinkung",
+	  "OFF sets state not intensity": "AUS setzt state, nicht intensitaet"
     }
   }
 }

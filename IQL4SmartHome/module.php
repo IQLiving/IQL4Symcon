@@ -5,6 +5,8 @@ class IQL4SmartHome extends IPSModule {
     private $dimmingFunctions = Array("setPercentage", "incrementPercentage", "decrementPercentage");
     private $targetTemperatureFunctions = Array("setTargetTemperature", "incrementTargetTemperature", "decrementTargetTemperature", "getTargetTemperature");
     private $readingTemperatureFunctions = Array("getTemperatureReading");
+    private $rgbColorFunctions = Array("SetColor");
+    private $rgbTemeratureFunctions = Array("SetColorTemperature", "IncrementColorTemperature", "DecrementColorTemperature");
 
     public function Create() {
 
@@ -12,7 +14,8 @@ class IQL4SmartHome extends IPSModule {
         parent::Create();
 
         $this->RegisterPropertyString("Sender","AlexaSmartHome");
-        $this->RegisterPropertyString("Devices", "");
+        $this->RegisterPropertyString("Scripts","");
+        $this->RegisterPropertyString("Variables","");
         $this->RegisterPropertyBoolean("EmulateStatus",true);
         $this->RegisterPropertyBoolean("MultipleLinking",false);
     }
@@ -49,6 +52,10 @@ class IQL4SmartHome extends IPSModule {
             } else {
                 return $this->readingTemperatureFunctions;
             }
+        }
+        // Support RGBColor
+        if($profile['ProfileName'] == "~HexColor") {
+            return $this->rgbColorFunctions;
         }
 
         return Array();
@@ -127,8 +134,17 @@ class IQL4SmartHome extends IPSModule {
     }
 
     private function DeviceDiscovery(array $data) {
+        $devVariables = json_decode($this->ReadPropertyString("Variables"),true);
+        $devScripts = json_decode($this->ReadPropertyString("Scripts"),true);
 
-        $childrenIDs = $this->GetChildrenIDsRecursive($this->InstanceID);
+        $childrenIDs = array();
+        //$childrenIDs = $this->GetChildrenIDsRecursive($this->InstanceID);
+        foreach($devVariables as $d) {
+            $childrenIDs[] = $d['DeviceID'];
+        }
+        foreach($devScripts as $s) {
+            $childrenIDs[] = $s['ScriptID'];
+        }
 
         $appliances = Array();
         foreach($childrenIDs as $childID) {
@@ -167,7 +183,7 @@ class IQL4SmartHome extends IPSModule {
             } elseif($targetObject['ObjectType'] == 3 /* Script */) {
 
                 $appliance = $this->BuildBasicAppliance($childID, $targetID, $targetID);
-                $appliance['actions'] = array_merge($this->switchFunctions, $this->dimmingFunctions, $this->targetTemperatureFunctions);
+                $appliance['actions'] = array_merge($this->switchFunctions, $this->dimmingFunctions, $this->targetTemperatureFunctions, $this->rgbColorFunctions,$this->rgbTemeratureFunctions);
 
                 //append to discovered devices
                 $appliances[] = $appliance;
@@ -249,6 +265,7 @@ class IQL4SmartHome extends IPSModule {
 
         $payload = new stdClass;
         $headerName = str_replace("Request","Confirmation",$data['header']['name']);
+        $sourceID = $data['payload']['appliance']['applianceId'];
         if(IPS_GetObject($data['payload']['appliance']['applianceId'])['ObjectType'] == 6) {
             $targetID = IPS_GetLink($data['payload']['appliance']['applianceId'])['TargetID'];
         }
@@ -257,6 +274,43 @@ class IQL4SmartHome extends IPSModule {
         }
 
         $o = IPS_GetObject($targetID);
+
+        $hsvToRGB = function ($iH, $iS, $iV) {
+
+            if($iH < 0)   $iH = 0;
+            if($iH > 360) $iH = 360;
+            if($iS < 0)   $iS = 0;
+            if($iS > 100) $iS = 100;
+            if($iV < 0)   $iV = 0;
+            if($iV > 100) $iV = 100;
+            $dS = $iS/100.0;
+            $dV = $iV/100.0;
+            $dC = $dV*$dS;
+            $dH = $iH/60.0;
+            $dT = $dH;
+            while($dT >= 2.0) $dT -= 2.0;
+            $dX = $dC*(1-abs($dT-1));
+            switch($dH) {
+                case($dH >= 0.0 && $dH < 1.0):
+                    $dR = $dC; $dG = $dX; $dB = 0.0; break;
+                case($dH >= 1.0 && $dH < 2.0):
+                    $dR = $dX; $dG = $dC; $dB = 0.0; break;
+                case($dH >= 2.0 && $dH < 3.0):
+                    $dR = 0.0; $dG = $dC; $dB = $dX; break;
+                case($dH >= 3.0 && $dH < 4.0):
+                    $dR = 0.0; $dG = $dX; $dB = $dC; break;
+                case($dH >= 4.0 && $dH < 5.0):
+                    $dR = $dX; $dG = 0.0; $dB = $dC; break;
+                case($dH >= 5.0 && $dH < 6.0):
+                    $dR = $dC; $dG = 0.0; $dB = $dX; break;
+                default:
+                    $dR = 0.0; $dG = 0.0; $dB = 0.0; break;
+            }
+            $dM  = $dV - $dC;
+            $dR += $dM; $dG += $dM; $dB += $dM;
+            $dR *= 255; $dG *= 255; $dB *= 255;
+            return array(round($dR), round($dG), round($dB));
+        };
 
         if($o['ObjectType'] == 2 /* Variable */) {
             $targetVariable = IPS_GetVariable($targetID);
@@ -313,6 +367,18 @@ class IQL4SmartHome extends IPSModule {
                     $value = GetValue($targetID) - $percentToValue($data['payload']['deltaPercentage']['value']);
                 }
             }
+
+            elseif($data['header']['name'] == "SetColorRequest") {
+                if(trim($profile['ProfileName']) == "~HexColor") {
+                    $components = $hsvToRGB($data['payload']['color']['hue']['value'],$data['payload']['color']['saturation']['value']*100,$data['payload']['color']['brightness']['value']*100);
+                    $value = $components[0] << 16 + $components[1] << 8 + $components[2];
+                    $payload = Array();
+                    $payload['achievedState']['color']['hue']['value'] = $data['payload']['color']['hue']['value'];
+                    $payload['achievedState']['color']['saturation']['value'] = $data['payload']['color']['hue']['value'];
+                    $payload['achievedState']['color']['brightness']['value'] = $data['payload']['color']['hue']['value'];
+                }
+            }
+
             elseif($data['header']['name'] == "SetTargetTemperatureRequest") {
                 if(trim($profile['Suffix']) == "°C") {
                     $value = $data['payload']['targetTemperature']['value'];
@@ -323,6 +389,7 @@ class IQL4SmartHome extends IPSModule {
                     $payload['previousState']['mode']['value'] = "AUTO";
                 }
             }
+
             elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
                 if(trim($profile['Suffix']) == "°C") {
                     if($data['header']['name'] == "IncrementTargetTemperatureRequest") {
@@ -387,9 +454,12 @@ class IQL4SmartHome extends IPSModule {
 			elseif($data['header']['name'] == "IncrementTargetTemperatureRequest" or $data['header']['name'] == "DecrementTargetTemperatureRequest") {
 				$action = $data['payload']['deltaTemperature']['value'];
 			}
-
+            elseif($data['header']['name'] == "SetColorRequest") {
+                $components = $hsvToRGB($data['payload']['color']['hue']['value'],$data['payload']['color']['saturation']['value']*100,$data['payload']['color']['brightness']['value']*100);
+                $action = $components[0] << 16 + $components[1] << 8 + $components[2];
+            }
             if(isset($action)) {
-                IPS_RunScriptEx($targetID, Array("VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender")));
+                IPS_RunScriptEx($targetID, Array("VARIABLE" => $sourceID, "VALUE" => $action, "SENDER" => $this->ReadPropertyString("Sender"), "REQUEST" => $data['header']['name']));
             }
         }
         
@@ -526,7 +596,55 @@ class IQL4SmartHome extends IPSModule {
     }
 
     public function GetConfigurationForm() {
+        $data = json_decode(file_get_contents(__DIR__ . "/form.json"),true);
+        $ids = IPS_GetInstanceListByModuleID("{9486D575-BE8C-4ED8-B5B5-20930E26DE6F}");
+        if(IPS_GetInstance($ids[0])['InstanceStatus'] != 102) {
+            $message = "Error: Symcon Connect is not active!";
+        } else {
+            $message = "Status: Symcon Connect is OK!";
+        }
 
+        $data['elements'][0] = Array("type" => "Label", "label" => $message);
+
+        if($this->ReadPropertyString("Variables") != "") {
+            $treeDataDevice = json_decode($this->ReadPropertyString("Variables"),true);
+            foreach($treeDataDevice as $treeRowD) {
+                //We only need to add annotations. Remaining data is merged from persistance automatically.
+                //Order is determinted by the order of array elements
+                if(IPS_ObjectExists($treeRowD['DeviceID'])) {
+                    $data['elements'][3]['values'][] = Array(
+                        "DeviceName" => IPS_GetLocation($treeRowD['DeviceID']),
+                    );
+                } else {
+                    $data['elements'][3]['values'][] = Array(
+                        "DeviceName" => "Not found!",
+                        "rowColor" => "#ff0000"
+                    );
+                }
+            }
+        }
+        if($this->ReadPropertyString("Scripts") != "") {
+            $treeDataScripts = json_decode($this->ReadPropertyString("Scripts"),true);
+            foreach($treeDataScripts as $treeRowS) {
+                //We only need to add annotations. Remaining data is merged from persistance automatically.
+                //Order is determinted by the order of array elements
+                if(IPS_ObjectExists($treeRowS['ScriptID'])) {
+                    $data['elements'][4]['values'][] = Array(
+                        "ScriptName" => IPS_GetLocation($treeRowS['ScriptID']),
+                    );
+                } else {
+                    $data['elements'][4]['values'][] = Array(
+                        "ScriptName" => "Not found!",
+                    );
+                }
+            }
+        }
+        return json_encode($data);
+
+
+
+
+        /*
         $form = Array(
             "elements" => Array()
         );
@@ -553,5 +671,6 @@ class IQL4SmartHome extends IPSModule {
         }
 
         return json_encode($form);
+        */
     }
 }

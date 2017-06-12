@@ -1,0 +1,104 @@
+{
+  "elements": [
+    {
+      "type": "Label",
+      "label": "Connect"
+    },
+    {
+      "type": "CheckBox",
+      "name": "EmulateStatus",
+      "caption": "Emulate status"
+    },
+    {
+      "type": "CheckBox",
+      "name": "MultipleLinking",
+      "caption": "Multiple linking"
+    },
+    {
+      "type": "List",
+      "name": "Variables",
+      "caption": "Variables",
+      "rowCount": 10,
+      "add": true,
+      "delete": true,
+      "sort": {
+        "column": "Name",
+        "direction": "ascending"
+      },
+      "columns": [
+        {
+          "label": "Name",
+          "name": "DeviceName",
+          "width": "100px",
+          "add": ""
+        },
+        {
+          "label": "DeviceID",
+          "name": "DeviceID",
+          "width": "75px",
+          "add": 0,
+          "visible": false,
+          "edit": {
+            "type": "SelectVariable"
+          }
+        },
+        {
+          "label": "Type",
+          "name": "VariablesType",
+          "width": "75px",
+          "add": ""
+        }
+      ],
+      "values": [
+      ]
+    },
+    {
+      "type": "List",
+      "name": "Scripts",
+      "caption": "Scripts",
+      "rowCount": 10,
+      "add": true,
+      "delete": true,
+      "sort": {
+        "column": "Name",
+        "direction": "ascending"
+      },
+      "columns": [
+        {
+          "label": "Name",
+          "name": "ScriptName",
+          "width": "100px",
+          "add": ""
+        },
+        {
+          "label": "ScriptID",
+          "name": "ScriptID",
+          "width": "75px",
+          "visible": false,
+          "add": 0,
+          "edit": {
+            "type": "SelectScript"
+          }
+        },
+        {
+          "label": "Type",
+          "name": "ScriptType",
+          "width": "75px",
+          "add": "",
+          "edit": {
+            "type": "Select",
+            "options": [
+              { "label": "Legacy", "value": "Legacy" },
+              { "label": "Light", "value": "Light" },
+              { "label": "Tunable Lighting Control", "value": "TunableLightingControl" },
+              { "label": "Temperature Control ", "value": "TemperatureControl " },
+              { "label": "Door Lock Control", "value": "DoorLockControl" }
+            ]
+          }
+        }
+      ],
+      "values": [
+      ]
+    }
+  ]
+}

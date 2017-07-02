@@ -630,7 +630,7 @@ class IQL4SmartHome extends IPSModule {
     }
 
     public function ConvertToV2() {
-        if($this->ReadPropertyString("Variables") == "" and $this->ReadPropertyString("Scripts") == "") {
+        if($this->ReadPropertyString("Variables") == "[]" and $this->ReadPropertyString("Scripts") == "[]") {
             $newDevices = array();
             $newScripts = array();
             $wasChanged = false;
@@ -687,7 +687,7 @@ class IQL4SmartHome extends IPSModule {
     }
 
     public function GetConfigurationForm() {
-        if($this->ReadPropertyString("Variables") == "" and $this->ReadPropertyString("Scripts") == "" and count($this->GetChildrenIDsRecursive($this->InstanceID)) >0) {
+        if($this->ReadPropertyString("Variables") == "[]" and $this->ReadPropertyString("Scripts") == "[]" and count($this->GetChildrenIDsRecursive($this->InstanceID)) >0) {
             $data['elements'][0] = Array("type" => "Label", "label" => "Bitte den Button klicken um in das neue Modulformat zu konvertieren");
             $data['actions'][0] = array("type" => "Button", "label" => "Convert", "onClick" => "IQL4SH_ConvertToV2(\$id);");
         }

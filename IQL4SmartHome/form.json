@@ -1,0 +1,153 @@
+{
+  "elements": [
+    {
+      "type": "Label",
+      "label": "Connect"
+    },
+    {
+      "type": "CheckBox",
+      "name": "EmulateStatus",
+      "caption": "Emulate status"
+    },
+    {
+      "type": "CheckBox",
+      "name": "MultipleLinking",
+      "caption": "Multiple linking"
+    },
+    {
+      "type": "List",
+      "name": "Variables",
+      "caption": "Variables",
+      "rowCount": 10,
+      "add": true,
+      "delete": true,
+      "sort": {
+        "column": "Name",
+        "direction": "ascending"
+      },
+      "columns": [
+        {
+          "label": "ID",
+          "name": "ID",
+          "width": "50px",
+          "add": 0,
+          "visible": true,
+          "edit": {
+            "type": "SelectVariable"
+          }
+        },
+        {
+          "label": "Device",
+          "name": "Device",
+          "width": "100px",
+          "add": ""
+        },
+        {
+          "label": "Name",
+          "name": "Name",
+          "width": "100px",
+          "add": "",
+          "edit": {
+            "type": "ValidationTextBox"
+          }
+        },
+        {
+          "label": "Type",
+          "name": "VariablesType",
+          "width": "75px",
+          "add": "",
+          "visible": false
+        },
+        {
+          "label": "State",
+          "name": "State",
+          "width": "75px",
+          "add": ""
+        },
+        {
+          "label": "amzID",
+          "name": "amzID",
+          "width": "75px",
+          "add": 0,
+          "visible": false,
+          "save": true
+        }
+      ],
+      "values": [
+      ]
+    },
+    {
+      "type": "List",
+      "name": "Scripts",
+      "caption": "Scripts",
+      "rowCount": 10,
+      "add": true,
+      "delete": true,
+      "sort": {
+        "column": "Name",
+        "direction": "ascending"
+      },
+      "columns": [
+        {
+          "label": "ID",
+          "name": "ID",
+          "width": "50px",
+          "visible": true,
+          "add": 0,
+          "edit": {
+            "type": "SelectScript"
+          }
+        },
+        {
+          "label": "Script",
+          "name": "Script",
+          "width": "100px",
+          "add": ""
+        },
+        {
+          "label": "Name",
+          "name": "Name",
+          "width": "100px",
+          "add": "",
+          "edit": {
+            "type": "ValidationTextBox"
+          }
+        },
+        {
+          "label": "Type",
+          "name": "ScriptType",
+          "width": "75px",
+          "add": "Legacy",
+          "visible": false,
+          "save": true,
+          "edit": {
+            "type": "Select",
+            "options": [
+              { "label": "Legacy", "value": "Legacy" },
+              { "label": "Light", "value": "Light" },
+              { "label": "Tunable Lighting Control", "value": "TunableLightingControl" },
+              { "label": "Temperature Control ", "value": "TemperatureControl " },
+              { "label": "Door Lock Control", "value": "DoorLockControl" }
+            ]
+          }
+        },
+        {
+          "label": "State",
+          "name": "State",
+          "width": "75px",
+          "add": ""
+        },
+        {
+          "label": "amzID",
+          "name": "amzID",
+          "width": "75px",
+          "add": 0,
+          "visible": false,
+          "save": true
+        }
+      ],
+      "values": [
+      ]
+    }
+  ]
+}

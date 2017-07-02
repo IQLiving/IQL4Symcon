@@ -2,7 +2,13 @@
   "translations": {
     "de": {
       "Emulate status": "Status emulieren",
-      "Multiple linking": "Mehrfachverlinkung"
+      "Multiple linking": "Mehrfachverlinkung",
+      "Variables": "Variablen",
+      "Legacy": "Veraltet",
+      "Device": "Gerät",
+      "Type": "Typ",
+      "State": "Status",
+      "Convert": "Konnvertieren"
     }
   }
 }

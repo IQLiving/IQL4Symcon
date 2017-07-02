@@ -160,17 +160,7 @@ class IQL4SmartHome extends IPSModule {
     }
 
     private function DeviceDiscovery(array $data) {
-        $devVariables = json_decode($this->ReadPropertyString("Variables"),true);
-        $devScripts = json_decode($this->ReadPropertyString("Scripts"),true);
-
-        $childrenIDs = array();
-        //$childrenIDs = $this->GetChildrenIDsRecursive($this->InstanceID);
-        foreach($devVariables as $d) {
-            $childrenIDs[] = $d['amzID'];
-        }
-        foreach($devScripts as $s) {
-            $childrenIDs[] = $s['amzID'];
-        }
+        $childrenIDs = $this->GetamzIDs();
 
         $appliances = Array();
         foreach($childrenIDs as $childID) {
@@ -634,6 +624,17 @@ class IQL4SmartHome extends IPSModule {
             }
         }
         return $appendIDs;
+    }
+
+    protected function GetamzIDs() {
+        $childrenIDs = array();
+        foreach(json_decode($this->ReadPropertyString("Variables"),true) as $d) {
+            $childrenIDs[] = $d['amzID'];
+        }
+        foreach(json_decode($this->ReadPropertyString("Scripts"),true) as $s) {
+            $childrenIDs[] = $s['amzID'];
+        }
+        return $childrenIDs;
     }
 
     protected function GetListDetails($amzID) {

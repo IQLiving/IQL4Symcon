@@ -14,8 +14,8 @@ class IQL4SmartHome extends IPSModule {
         parent::Create();
 
         $this->RegisterPropertyString("Sender","AlexaSmartHome");
-        $this->RegisterPropertyString("Scripts","");
-        $this->RegisterPropertyString("Variables","");
+        $this->RegisterPropertyString("Scripts","[]");
+        $this->RegisterPropertyString("Variables","[]");
         $this->RegisterPropertyBoolean("EmulateStatus",true);
         $this->RegisterPropertyBoolean("MultipleLinking",false);
     }
@@ -406,12 +406,12 @@ class IQL4SmartHome extends IPSModule {
 
             elseif($data['header']['name'] == "SetColorRequest") {
                 if(trim($profile['ProfileName']) == "~HexColor") {
-                    $components = $hsvToRGB($data['payload']['color']['hue']['value'],$data['payload']['color']['saturation']['value']*100,$data['payload']['color']['brightness']['value']*100);
-                    $value = $components[0] << 16 + $components[1] << 8 + $components[2];
+                    $components = $hsvToRGB($data['payload']['color']['hue'],$data['payload']['color']['saturation']*100,$data['payload']['color']['brightness']*100);
+                    $value = ($components[0] << 16) + ($components[1] << 8) + $components[2];
                     $payload = Array();
-                    $payload['achievedState']['color']['hue']['value'] = $data['payload']['color']['hue']['value'];
-                    $payload['achievedState']['color']['saturation']['value'] = $data['payload']['color']['hue']['value'];
-                    $payload['achievedState']['color']['brightness']['value'] = $data['payload']['color']['hue']['value'];
+                    $payload['achievedState']['color']['hue'] = $data['payload']['color']['hue'];
+                    $payload['achievedState']['color']['saturation'] = $data['payload']['color']['saturation'];
+                    $payload['achievedState']['color']['brightness'] = $data['payload']['color']['brightness'];
                 }
             }
 

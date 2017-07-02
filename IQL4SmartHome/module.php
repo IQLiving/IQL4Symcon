@@ -160,7 +160,7 @@ class IQL4SmartHome extends IPSModule {
     }
 
     private function DeviceDiscovery(array $data) {
-        $childrenIDs = $this->GetamzIDs();
+        $childrenIDs = $this->GetChildrenIDs("amzID");
 
         $appliances = Array();
         foreach($childrenIDs as $childID) {
@@ -218,29 +218,7 @@ class IQL4SmartHome extends IPSModule {
 
         $checkResult = Array();
 
-        //$childrenIDs = $this->GetChildrenIDsRecursive($this->InstanceID);
-        if($this->ReadPropertyString("Variables") != "") {
-            $devVariables = json_decode($this->ReadPropertyString("Variables"),true);
-        }
-        else {
-            $devVariables = array();
-        }
-        if($this->ReadPropertyString("Scripts") != "") {
-            $devScripts = json_decode($this->ReadPropertyString("Scripts"),true);
-        }
-        else {
-            $devScripts = array();
-        }
-
-
-        $childrenIDs = array();
-        //$childrenIDs = $this->GetChildrenIDsRecursive($this->InstanceID);
-        foreach($devVariables as $d) {
-            $childrenIDs[] = $d['ID'];
-        }
-        foreach($devScripts as $s) {
-            $childrenIDs[] = $s['ID'];
-        }
+        $childrenIDs = $this->GetChildrenIDs("ID");
 
         $appliances = Array();
         foreach($childrenIDs as $childID) {
@@ -626,13 +604,13 @@ class IQL4SmartHome extends IPSModule {
         return $appendIDs;
     }
 
-    protected function GetamzIDs() {
+    protected function GetChildrenIDs($type) {
         $childrenIDs = array();
         foreach(json_decode($this->ReadPropertyString("Variables"),true) as $d) {
-            $childrenIDs[] = $d['amzID'];
+            $childrenIDs[] = $d[$type];
         }
         foreach(json_decode($this->ReadPropertyString("Scripts"),true) as $s) {
-            $childrenIDs[] = $s['amzID'];
+            $childrenIDs[] = $s[$type];
         }
         return $childrenIDs;
     }

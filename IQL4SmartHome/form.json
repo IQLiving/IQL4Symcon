@@ -119,17 +119,7 @@
           "width": "75px",
           "add": "Legacy",
           "visible": false,
-          "save": true,
-          "edit": {
-            "type": "Select",
-            "options": [
-              { "label": "Legacy", "value": "Legacy" },
-              { "label": "Light", "value": "Light" },
-              { "label": "Tunable Lighting Control", "value": "TunableLightingControl" },
-              { "label": "Temperature Control ", "value": "TemperatureControl " },
-              { "label": "Door Lock Control", "value": "DoorLockControl" }
-            ]
-          }
+          "save": true
         },
         {
           "label": "State",

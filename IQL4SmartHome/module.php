@@ -459,12 +459,12 @@ class IQL4SmartHome extends IPSModule {
 				$action = $data['payload']['deltaTemperature']['value'];
 			}
             elseif($data['header']['name'] == "SetColorRequest") {
-                $components = $hsvToRGB($data['payload']['color']['hue']['value'],$data['payload']['color']['saturation']['value']*100,$data['payload']['color']['brightness']['value']*100);
-                $action = $components[0] << 16 + $components[1] << 8 + $components[2];
+                $components = $hsvToRGB($data['payload']['color']['hue'],$data['payload']['color']['saturation']*100,$data['payload']['color']['brightness']*100);
+                $action = $this->RGBToHex($components[0],$components[1],$components[2]);
                 $payload = Array();
-                $payload['achievedState']['color']['hue']['value'] = $data['payload']['color']['hue']['value'];
-                $payload['achievedState']['color']['saturation']['value'] = $data['payload']['color']['hue']['value'];
-                $payload['achievedState']['color']['brightness']['value'] = $data['payload']['color']['hue']['value'];
+                $payload['achievedState']['color']['hue'] = $data['payload']['color']['hue'];
+                $payload['achievedState']['color']['saturation'] = $data['payload']['color']['saturation'];
+                $payload['achievedState']['color']['brightness'] = $data['payload']['color']['brightness'];
             }
             elseif($data['header']['name'] == "SetColorTemperatureRequest") {
                 $action = $data['payload']['colorTemperature']['value'];
@@ -627,6 +627,16 @@ class IQL4SmartHome extends IPSModule {
             }
         }
         return false;
+    }
+
+    protected function RGBToHex($r, $g, $b) {
+        //String padding bug found and the solution put forth by Pete Williams (http://snipplr.com/users/PeteW)
+        $hex = "#";
+        $hex.= str_pad(dechex($r), 2, "0", STR_PAD_LEFT);
+        $hex.= str_pad(dechex($g), 2, "0", STR_PAD_LEFT);
+        $hex.= str_pad(dechex($b), 2, "0", STR_PAD_LEFT);
+
+        return $hex;
     }
 
     public function ConvertToV2() {

@@ -640,6 +640,18 @@ class IQL4SmartHome extends IPSModule {
     }
 
     public function ConvertToV2() {
+
+        $convertToUTF8 = function($arr) {
+            $strencode = function(&$item, $key) {
+                if ( is_string($item) && !mb_detect_encoding($item, 'UTF-8', true) )
+                    $item = utf8_encode($item);
+                else if ( is_array($item) )
+                    array_walk_recursive($item, $strencode);
+            };
+            array_walk_recursive($arr, $strencode);
+            return $arr;
+        };
+
         if($this->ReadPropertyString("Variables") == "[]" and $this->ReadPropertyString("Scripts") == "[]") {
             $newDevices = array();
             $newScripts = array();
@@ -676,12 +688,22 @@ class IQL4SmartHome extends IPSModule {
                     }
                 }
             }
-            if(count($newDevices) >0) {
-                IPS_SetProperty($this->InstanceID,"Variables",json_encode($newDevices));
+            if(count($newDevices) > 0) {
+                $jsonVariables = json_encode($convertToUTF8($newDevices));
+                if($jsonVariables === false) {
+                    echo "Fehler, die Konvertierung der Variablen konnte nicht durchgeführt werden";
+                    return false;
+                }
+                IPS_SetProperty($this->InstanceID,"Variables", $jsonVariables);
                 $wasChanged = true;
             }
-            if(count($newScripts) >0) {
-                IPS_SetProperty($this->InstanceID,"Scripts",json_encode($newScripts));
+            if(count($newScripts) > 0) {
+                $jsonScripts = json_encode($convertToUTF8($newScripts));
+                if($jsonScripts === false) {
+                    echo "Fehler, die Konvertierung der Skripte konnte nicht durchgeführt werden";
+                    return false;
+                }
+                IPS_SetProperty($this->InstanceID,"Scripts", $jsonScripts);
                 $wasChanged = true;
             }
             if($wasChanged == true) {

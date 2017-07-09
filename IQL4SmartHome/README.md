@@ -7,9 +7,9 @@ Verbindet IP-Symcon mit dem Symcon Alexa Skill
 2. [Voraussetzungen](#2-voraussetzungen)
 3. [Software-Installation](#3-software-installation)
 4. [Einrichten der Instanz in IP-Symcon](#4-einrichten-der-instanz-in-ip-symcon)
-5. [Scripte](#7-scripte)
-6. [Migration von Version 1](#5-migration-von-version-1)
-7. [WebFront](#6-webfront)
+5. [Scripte](#5-scripte)
+6. [Migration von Version 1](#6-migration-von-version-1)
+7. [WebFront](#7-webfront)
 8. [Bemerkungen](#8-bemerkungen)
 9. [FAQ](#9-faq)
 

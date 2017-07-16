@@ -106,12 +106,12 @@ Es wird nichts im WebFront angezeigt.
 
 ### 9. FAQ
 
-- ####Alexa findet keine Geräte:
+- Alexa findet keine Geräte:
     - Ist Ihre Subscription gültig?
     - Ist der Connect Dienst aktiviert und verbunden?
     - Ist in der "WebOAuth" Instanz der Eintrag "amazon_smarthome" vorhanden?
     - Werden in der IQL4SmartHome Instanz rote Einträge angezeigt?
-- ####Was ist "Status emulieren"?
+- Was ist "Status emulieren"?
     - Ist die Checkbox aktiviert wird immer nur "OKAY" zurückgegeben.
     - Ist die Checkbox deaktiviert wird nicht immer nur "OKAY" zurückgegeben, Sollte beim Schalten der Variable ein Fehler auftreten so wird Alexa nicht OKAY sagen sondern das ein Fehler aufgetreten ist.
     - Es gilt zu beachten, dass Amazon den Request nach 5 Sekunden abbricht wenn keine Antwort kommt, ist also für langlaufende Aktionen ungeeignet!

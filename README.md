@@ -1,6 +1,6 @@
 # IQL4Symcon
 
-The following modules are available in this repository:
+Folgende Module beinhaltet das IQL4Symcon Repository
 
-- __IQL4SmartHome__ ([Dokumentation](IQL4SmartHome))  
-	Connects IP-Symcon with the Symcon Alexa Skill
+- __IQL4SmartHome__ ([Dokumentation](IQL4SmartHome))
+	Verbindet IP-Symcon mit dem Symcon Alexa Skill

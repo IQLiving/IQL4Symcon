@@ -8,7 +8,8 @@
       "Device": "Gerät",
       "Type": "Typ",
       "State": "Status",
-      "Convert": "Konnvertieren"
+      "Convert": "Konnvertieren",
+      "Expert settings": "Experteneinstellungen"
     }
   }
 }

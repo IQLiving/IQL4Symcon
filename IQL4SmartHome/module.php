@@ -747,13 +747,13 @@ class IQL4SmartHome extends IPSModule {
                         else {
                             $rowcolor = "";
                         }
-                        $data['elements'][3]['values'][] = Array(
+                        $data['elements'][1]['values'][] = Array(
                             "Device" => IPS_GetLocation($treeRowD['ID']),
                             "State" => $devices[$treeRowD['ID']],
                             "rowColor" => $rowcolor
                         );
                     } else {
-                        $data['elements'][3]['values'][] = Array(
+                        $data['elements'][1]['values'][] = Array(
                             "Device" => "Not found!",
                             "rowColor" => "#ff0000"
                         );
@@ -766,12 +766,12 @@ class IQL4SmartHome extends IPSModule {
                     //We only need to add annotations. Remaining data is merged from persistance automatically.
                     //Order is determinted by the order of array elements
                     if(IPS_ObjectExists($treeRowS['ID'])) {
-                        $data['elements'][4]['values'][] = Array(
+                        $data['elements'][2]['values'][] = Array(
                             "Script" => IPS_GetLocation($treeRowS['ID']),
                             "State" => "OK",
                         );
                     } else {
-                        $data['elements'][4]['values'][] = Array(
+                        $data['elements'][2]['values'][] = Array(
                             "Script" => "Not found!",
                             "rowColor" => "#ff0000"
                         );

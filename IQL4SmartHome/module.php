@@ -629,6 +629,17 @@ class IQL4SmartHome extends IPSModule {
         return false;
     }
 
+    public function GetObjectList() {
+        $return = array();
+        foreach(json_decode($this->ReadPropertyString("Variables"),true) as $d) {
+            array_push($return,$d);
+        }
+        foreach (json_decode($this->ReadPropertyString("Scripts"),true) as $s) {
+            array_push($return,$s);
+        }
+        return $return;
+    }
+
     protected function RGBToHex($r, $g, $b) {
         //String padding bug found and the solution put forth by Pete Williams (http://snipplr.com/users/PeteW)
         $hex = "#";

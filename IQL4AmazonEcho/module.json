@@ -1,11 +1,12 @@
 {
   "id": "{3F0154A4-AC42-464A-9E9A-6818D775EFC4}",
-  "name": "IQL4SmartHome",
+  "name": "IQL4AmazonEcho",
   "type": 0,
   "vendor": "IQLiving",
   "aliases":
   [
-    "IQL4SmartHome"
+    "IQL4SmartHome",
+    "IQL4AmazonEcho"
   ],
   "parentRequirements": [],
   "childRequirements": [],

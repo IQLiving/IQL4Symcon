@@ -1,5 +1,5 @@
 <?
-class IQL4SmartHome extends IPSModule {
+class IQL4AmazonEcho extends IPSModule {
 
     private $switchFunctions = Array("turnOn", "turnOff");
     private $dimmingFunctions = Array("setPercentage", "incrementPercentage", "decrementPercentage");

@@ -70,7 +70,7 @@ class IQL4SmartHome extends IPSModule {
             IPS_SetProperty($this->InstanceID, "Scripts", json_encode($newScripts));
         }
         if(count($newScenes) >0) {
-            IPS_SetProperty($this->InstanceID, "Scripts", json_encode($newScenes));
+            IPS_SetProperty($this->InstanceID, "Scenes", json_encode($newScenes));
         }
         if($wasChanged == true) {
             IPS_ApplyChanges($this->InstanceID);

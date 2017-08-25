@@ -852,8 +852,15 @@ class IQL4SmartHome extends IPSModule {
                     //We only need to add annotations. Remaining data is merged from persistance automatically.
                     //Order is determinted by the order of array elements
                     if(IPS_ObjectExists($treeRowSc['ID'])) {
+                        if($treeRowSc['Name'] == "") {
+                            $name = IPS_GetObject($treeRowSc['ID'])['ObjectName'];
+                        }
+                        else {
+                            $name = $treeRowSc['Name'];
+                        }
                         $data['elements'][3]['values'][] = Array(
                             "Script" => IPS_GetLocation($treeRowSc['ID']),
+                            "Name" => $name,
                             "State" => "OK",
                         );
                     } else {

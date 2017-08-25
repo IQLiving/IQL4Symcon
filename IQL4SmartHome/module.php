@@ -30,6 +30,7 @@ class IQL4SmartHome extends IPSModule {
 
         $newDevices = array();
         $newScripts = array();
+        $newScenes = array();
         $wasChanged = false;
         if($this->ReadPropertyString("Variables") != "") {
             foreach (json_decode($this->ReadPropertyString("Variables"), true) as $entry) {
@@ -49,11 +50,27 @@ class IQL4SmartHome extends IPSModule {
                 array_push($newScripts, $entry);
             }
         }
+        if($this->ReadPropertyString("Scenes") != "") {
+            foreach (json_decode($this->ReadPropertyString("Scenes"), true) as $entry) {
+                if ($entry['amzID'] == 0) {
+                    $entry['amzID'] = $this->GenUUID();
+                    $wasChanged = true;
+                }
+                if($entry['Name'] == "") {
+                    $entry['Name'] = IPS_GetObject($entry['ID'])['ObjectName'];
+                    $wasChanged = true;
+                }
+                array_push($newScenes, $entry);
+            }
+        }
         if(count($newDevices) >0) {
             IPS_SetProperty($this->InstanceID, "Variables", json_encode($newDevices));
         }
         if(count($newScripts) >0) {
             IPS_SetProperty($this->InstanceID, "Scripts", json_encode($newScripts));
+        }
+        if(count($newScenes) >0) {
+            IPS_SetProperty($this->InstanceID, "Scripts", json_encode($newScenes));
         }
         if($wasChanged == true) {
             IPS_ApplyChanges($this->InstanceID);

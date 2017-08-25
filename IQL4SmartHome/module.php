@@ -282,7 +282,7 @@ class IQL4SmartHome extends IPSModule {
         $appliances = Array();
         foreach($childrenIDs as $childID) {
 
-            $targetID = $childID['ID'];
+            $targetID = $this->GetListDetails($childID)['ID'];
 
             //Check supported types
 
@@ -302,7 +302,7 @@ class IQL4SmartHome extends IPSModule {
                     continue;
                 }
                 if($this->ValidateApplianceTypes($childID) == false) {
-                    $checkResult[$childID] = "Wrong Type!!";
+                    $checkResult[$childID] = "Wrong Type!";
                     continue;
                 }
 

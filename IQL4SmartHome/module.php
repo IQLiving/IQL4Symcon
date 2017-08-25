@@ -277,12 +277,12 @@ class IQL4SmartHome extends IPSModule {
 
         $checkResult = Array();
 
-        $childrenIDs = $this->GetChildrenIDs("ID");
+        $childrenIDs = $this->GetChildrenIDs("amzID");
 
         $appliances = Array();
         foreach($childrenIDs as $childID) {
 
-            $targetID = $childID;
+            $targetID = $childID['ID'];
 
             //Check supported types
 
@@ -301,7 +301,10 @@ class IQL4SmartHome extends IPSModule {
                     $checkResult[$childID] = "Profile is missing";
                     continue;
                 }
-
+                if($this->ValidateApplianceTypes($childID) == false) {
+                    $checkResult[$childID] = "Wrong Type!!";
+                    continue;
+                }
 
                 $profile = IPS_GetVariableProfile($profileName);
                 $profileAction = $this->GetActionForVariable($targetVariable);
@@ -893,7 +896,7 @@ class IQL4SmartHome extends IPSModule {
                         else {
                             $name = $treeRowD['Name'];
                         }
-                        if($devices[$treeRowD['ID']] != "OK") {
+                        if($devices[$treeRowD['amzID']] != "OK") {
                             $rowcolor = "#ff0000";
                         }
                         else {
@@ -902,7 +905,7 @@ class IQL4SmartHome extends IPSModule {
                         $data['elements'][1]['values'][] = Array(
                             "Device" => IPS_GetLocation($treeRowD['ID']),
                             "Name" => $name,
-                            "State" => $devices[$treeRowD['ID']],
+                            "State" => $devices[$treeRowD['amzID']],
                             "rowColor" => $rowcolor
                         );
                     } else {

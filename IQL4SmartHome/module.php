@@ -334,6 +334,20 @@ class IQL4SmartHome extends IPSModule {
         $sourceID = $data['payload']['appliance']['applianceId'];
         $targetID = $this->GetListDetails($data['payload']['appliance']['applianceId'])['ID'];
 
+        if(!IPS_ObjectExists($targetID)) {
+            $headerName = 'TargetHardwareMalfunctionError';
+            $payload = new stdClass;
+            return Array(
+                'header' => Array(
+                    'messageId' => $this->GenUUID(),
+                    'namespace' => $data['header']['namespace'],
+                    'name' => $headerName,
+                    'payloadVersion' => "2"
+                ),
+                'payload' => $payload
+            );
+        }
+
         $o = IPS_GetObject($targetID);
 
         $hsvToRGB = function ($iH, $iS, $iV) {
@@ -554,6 +568,21 @@ class IQL4SmartHome extends IPSModule {
     private function DeviceQuery (array $data) {
         $payload = new stdClass;
         $targetID = $this->GetListDetails($data['payload']['appliance']['applianceId'])['ID'];
+
+        if(!IPS_ObjectExists($targetID)) {
+            $headerName = 'TargetHardwareMalfunctionError';
+            $payload = new stdClass;
+            return Array(
+                'header' => Array(
+                    'messageId' => $this->GenUUID(),
+                    'namespace' => $data['header']['namespace'],
+                    'name' => $headerName,
+                    'payloadVersion' => "2"
+                ),
+                'payload' => $payload
+            );
+        }
+
         $o = IPS_GetObject($targetID);
 
         if($o['ObjectType'] == 2 /* Variable */) {

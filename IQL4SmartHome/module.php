@@ -249,8 +249,8 @@ class IQL4SmartHome extends IPSModule {
             if($targetObject['ObjectType'] == 3 /* Script */) {
 
                 $appliance = $this->BuildBasicAppliance($scene, $targetID, $targetID);
-                $appliance['actions'] = array("turnOn");
-                //$appliance['applianceTypes'] = "SCENE_TRIGGER";
+                $appliance['actions'] = array_merge($this->switchFunctions);
+                $appliance['applianceTypes'] = array("SCENE_TRIGGER");
 
                 //append to discovered devices
                 $appliances[] = $appliance;

@@ -720,6 +720,11 @@ class IQL4SmartHome extends IPSModule {
                 return $s;
             }
         }
+        foreach (json_decode($this->ReadPropertyString("Scenes"),true) as $s) {
+            if($s['amzID'] == $amzID) {
+                return $s;
+            }
+        }
         return false;
     }
 
@@ -730,6 +735,9 @@ class IQL4SmartHome extends IPSModule {
         }
         foreach (json_decode($this->ReadPropertyString("Scripts"),true) as $s) {
             array_push($return,$s);
+        }
+        foreach (json_decode($this->ReadPropertyString("Scenes"),true) as $scene) {
+            array_push($return,$scene);
         }
         return $return;
     }

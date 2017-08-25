@@ -38,6 +38,10 @@ class IQL4SmartHome extends IPSModule {
                     $entry['amzID'] = $this->GenUUID();
                     $wasChanged = true;
                 }
+                if($entry['Name'] == "") {
+                    $entry['Name'] = IPS_GetObject($entry['ID'])['ObjectName'];
+                    $wasChanged = true;
+                }
                 array_push($newDevices, $entry);
             }
         }
@@ -45,6 +49,10 @@ class IQL4SmartHome extends IPSModule {
             foreach (json_decode($this->ReadPropertyString("Scripts"), true) as $entry) {
                 if ($entry['amzID'] == 0) {
                     $entry['amzID'] = $this->GenUUID();
+                    $wasChanged = true;
+                }
+                if($entry['Name'] == "") {
+                    $entry['Name'] = IPS_GetObject($entry['ID'])['ObjectName'];
                     $wasChanged = true;
                 }
                 array_push($newScripts, $entry);
@@ -809,6 +817,12 @@ class IQL4SmartHome extends IPSModule {
                     //We only need to add annotations. Remaining data is merged from persistance automatically.
                     //Order is determinted by the order of array elements
                     if(IPS_ObjectExists($treeRowD['ID'])) {
+                        if($treeRowD['Name'] == "") {
+                            $name = IPS_GetObject($treeRowD['ID'])['ObjectName'];
+                        }
+                        else {
+                            $name = $treeRowD['Name'];
+                        }
                         if($devices[$treeRowD['ID']] != "OK") {
                             $rowcolor = "#ff0000";
                         }
@@ -817,6 +831,7 @@ class IQL4SmartHome extends IPSModule {
                         }
                         $data['elements'][1]['values'][] = Array(
                             "Device" => IPS_GetLocation($treeRowD['ID']),
+                            "Name" => $name,
                             "State" => $devices[$treeRowD['ID']],
                             "rowColor" => $rowcolor
                         );
@@ -834,8 +849,15 @@ class IQL4SmartHome extends IPSModule {
                     //We only need to add annotations. Remaining data is merged from persistance automatically.
                     //Order is determinted by the order of array elements
                     if(IPS_ObjectExists($treeRowS['ID'])) {
+                        if($treeRowS['Name'] == "") {
+                            $name = IPS_GetObject($treeRowS['ID'])['ObjectName'];
+                        }
+                        else {
+                            $name = $treeRowS['Name'];
+                        }
                         $data['elements'][2]['values'][] = Array(
                             "Script" => IPS_GetLocation($treeRowS['ID']),
+                            "Name" => $name,
                             "State" => "OK",
                         );
                     } else {

@@ -9,7 +9,14 @@
       "Type": "Typ",
       "State": "Status",
       "Convert": "Konnvertieren",
-      "Expert settings": "Experteneinstellungen"
+      "Expert settings": "Experteneinstellungen",
+      "Scene": "Szene",
+      "Scenes": "Szenen",
+      "Light": "Licht",
+      "Smartlock": "Türschloss",
+      "Smartplug": "Zwischenstecker",
+      "Switch": "Aktor"
+
     }
   }
 }

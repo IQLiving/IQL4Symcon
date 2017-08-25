@@ -5,8 +5,8 @@ class IQL4SmartHome extends IPSModule {
     private $dimmingFunctions = Array("setPercentage", "incrementPercentage", "decrementPercentage");
     private $targetTemperatureFunctions = Array("setTargetTemperature", "incrementTargetTemperature", "decrementTargetTemperature", "getTargetTemperature");
     private $readingTemperatureFunctions = Array("getTemperatureReading");
-    private $rgbColorFunctions = Array("SetColor");
-    private $rgbTemeratureFunctions = Array("SetColorTemperature", "IncrementColorTemperature", "DecrementColorTemperature");
+    private $rgbColorFunctions = Array("setColor");
+    private $rgbTemeratureFunctions = Array("setColorTemperature", "incrementColorTemperature", "decrementColorTemperature");
 
     public function Create() {
 
@@ -15,6 +15,7 @@ class IQL4SmartHome extends IPSModule {
 
         $this->RegisterPropertyString("Sender","AlexaSmartHome");
         $this->RegisterPropertyString("Scripts","[]");
+        $this->RegisterPropertyString("Scenes","[]");
         $this->RegisterPropertyString("Variables","[]");
         $this->RegisterPropertyBoolean("EmulateStatus",true);
         $this->RegisterPropertyBoolean("MultipleLinking",false);
@@ -124,11 +125,16 @@ class IQL4SmartHome extends IPSModule {
         if($o['Name'] != "") {
             $friendlyName = substr($o['Name'], 0, 128);
         }
-        /*
-        if($o['ObjectInfo'] != "") {
-            $friendlyDescription = substr($o['ObjectInfo'], 0, 128);
+
+        if(isset($o['VariablesType'])) {
+            if($o['VariablesType'] != "") {
+                $applianceType = $o['VariablesType'];
+            }
         }
-        */
+
+        if(IPS_GetObject($targetID)['ObjectInfo'] != "") {
+            $friendlyDescription = substr(IPS_GetObject($targetID)['ObjectInfo'], 0, 128);
+        }
 
         //Enrich if we have an instance which will deliver more information
         if(IPS_GetObject($actionID)['ObjectType'] == 1 /* Instance */) {
@@ -143,10 +149,15 @@ class IQL4SmartHome extends IPSModule {
 
         //Enrich if we have a script
         if(IPS_GetObject($actionID)['ObjectType'] == 3 /* Script */) {
+            if(isset($o['ScriptType'])) {
+                if($o['ScriptType'] != "") {
+                    $applianceType = $o['ScriptType'];
+                }
+            }
             $moduleName = "Generic Script";
         }
 
-        return Array(
+        $result = Array(
             'applianceId' => $objectID,
             'manufacturerName' => $moduleVendor,
             'modelName' => $moduleName,
@@ -157,11 +168,16 @@ class IQL4SmartHome extends IPSModule {
             'actions' => Array()
         );
 
+        if(isset($applianceType))
+            $result["applianceTypes"] = $applianceType;
+
+        return $result;
+
     }
 
     private function DeviceDiscovery(array $data) {
         $childrenIDs = $this->GetChildrenIDs("amzID");
-
+        $sceneIDs = $this->GetChildrenSceneIDs("amzID");
         $appliances = Array();
         foreach($childrenIDs as $childID) {
             $targetID = $this->GetListDetails($childID)['ID'];
@@ -194,6 +210,22 @@ class IQL4SmartHome extends IPSModule {
 
                 $appliance = $this->BuildBasicAppliance($childID, $targetID, $targetID);
                 $appliance['actions'] = array_merge($this->switchFunctions, $this->dimmingFunctions, $this->targetTemperatureFunctions, $this->rgbColorFunctions,$this->rgbTemeratureFunctions);
+
+                //append to discovered devices
+                $appliances[] = $appliance;
+            }
+
+        }
+
+        foreach ($sceneIDs as $scene) {
+            $targetID = $this->GetListDetails($scene)['ID'];
+            //Check supported types
+            $targetObject = IPS_GetObject($targetID);
+            if($targetObject['ObjectType'] == 3 /* Script */) {
+
+                $appliance = $this->BuildBasicAppliance($scene, $targetID, $targetID);
+                $appliance['actions'] = array_merge($this->switchFunctions);
+                $appliance['applianceTypes'] = "SCENE_TRIGGER";
 
                 //append to discovered devices
                 $appliances[] = $appliance;
@@ -615,6 +647,14 @@ class IQL4SmartHome extends IPSModule {
         return $childrenIDs;
     }
 
+    protected function GetChildrenSceneIDs($type) {
+        $childrenIDs = array();
+        foreach(json_decode($this->ReadPropertyString("Scenes"),true) as $d) {
+            $childrenIDs[] = $d[$type];
+        }
+        return $childrenIDs;
+    }
+
     protected function GetListDetails($amzID) {
         foreach(json_decode($this->ReadPropertyString("Variables"),true) as $d) {
             if($d['amzID'] == $amzID) {
@@ -779,6 +819,24 @@ class IQL4SmartHome extends IPSModule {
                     if(IPS_ObjectExists($treeRowS['ID'])) {
                         $data['elements'][2]['values'][] = Array(
                             "Script" => IPS_GetLocation($treeRowS['ID']),
+                            "State" => "OK",
+                        );
+                    } else {
+                        $data['elements'][2]['values'][] = Array(
+                            "Script" => "Not found!",
+                            "rowColor" => "#ff0000"
+                        );
+                    }
+                }
+            }
+            if($this->ReadPropertyString("Scenes") != "") {
+                $treeDataScripts = json_decode($this->ReadPropertyString("Scenes"),true);
+                foreach($treeDataScripts as $treeRowSc) {
+                    //We only need to add annotations. Remaining data is merged from persistance automatically.
+                    //Order is determinted by the order of array elements
+                    if(IPS_ObjectExists($treeRowSc['ID'])) {
+                        $data['elements'][2]['values'][] = Array(
+                            "Script" => IPS_GetLocation($treeRowSc['ID']),
                             "State" => "OK",
                         );
                     } else {

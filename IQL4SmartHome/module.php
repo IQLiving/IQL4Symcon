@@ -153,7 +153,7 @@ class IQL4SmartHome extends IPSModule {
 
         if(isset($o['VariablesType'])) {
             if($o['VariablesType'] != "") {
-                if($this->ValidateApplianceTypes($targetID) == true) {
+                if($this->ValidateApplianceTypes($objectID) == true) {
                     $applianceType = $o['VariablesType'];
                 }
             }
@@ -301,6 +301,7 @@ class IQL4SmartHome extends IPSModule {
                     $checkResult[$childID] = "Profile is missing";
                     continue;
                 }
+
 
                 $profile = IPS_GetVariableProfile($profileName);
                 $profileAction = $this->GetActionForVariable($targetVariable);

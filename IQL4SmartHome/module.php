@@ -153,7 +153,9 @@ class IQL4SmartHome extends IPSModule {
 
         if(isset($o['VariablesType'])) {
             if($o['VariablesType'] != "") {
-                $applianceType = $o['VariablesType'];
+                if($this->ValidateApplianceTypes($targetID) == true) {
+                    $applianceType = $o['VariablesType'];
+                }
             }
         }
 
@@ -194,7 +196,7 @@ class IQL4SmartHome extends IPSModule {
         );
 
         if(isset($applianceType))
-            $result["applianceTypes"] = $applianceType;
+            $result["applianceTypes"][] = $applianceType;
 
         return $result;
 
@@ -740,6 +742,36 @@ class IQL4SmartHome extends IPSModule {
             array_push($return,$scene);
         }
         return $return;
+    }
+
+    protected function ValidateApplianceTypes($objectID) {
+        $o = $this->GetListDetails($objectID);
+        $targetID = $o['ID'];
+        if(IPS_GetObject($o['ID'])['ObjectType'] == 2) {
+            $types = $o['VariablesType'];
+        }
+        elseif (IPS_GetObject($o['ID'])['ObjectType'] == 3) {
+            $types = $o['ScriptType'];
+        }
+        $targetVariable = IPS_GetVariable($targetID);
+        $profileName = $this->GetProfileForVariable($targetVariable);
+        $profile = IPS_GetVariableProfile($profileName);
+        if($types == "THERMOSTAT") {
+            if(trim($profile['Suffix']) == "°C") {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        else {
+            if(trim($profile['Suffix']) == "°C") {
+                return false;
+            }
+            else {
+                return true;
+            }
+        }
     }
 
     protected function RGBToHex($r, $g, $b) {

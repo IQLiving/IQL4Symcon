@@ -1,5 +1,5 @@
 <?
-class IQL4AmazonEcho extends IPSModule {
+class IQL4SmartHome extends IPSModule {
 
     private $switchFunctions = Array("turnOn", "turnOff");
     private $dimmingFunctions = Array("setPercentage", "incrementPercentage", "decrementPercentage");
@@ -752,29 +752,38 @@ class IQL4AmazonEcho extends IPSModule {
         $o = $this->GetListDetails($objectID);
         $targetID = $o['ID'];
         if(IPS_GetObject($o['ID'])['ObjectType'] == 2) {
-            $types = $o['VariablesType'];
+            if(isset($o['VariablesType'])) {
+                $types = $o['VariablesType'];
+            }
         }
         elseif (IPS_GetObject($o['ID'])['ObjectType'] == 3) {
-            $types = $o['ScriptType'];
+            if(isset($o['ScriptType'])) {
+                $types = $o['ScriptType'];
+            }
         }
         $targetVariable = IPS_GetVariable($targetID);
         $profileName = $this->GetProfileForVariable($targetVariable);
         $profile = IPS_GetVariableProfile($profileName);
-        if($types == "THERMOSTAT") {
-            if(trim($profile['Suffix']) == "°C") {
-                return true;
+        if(isset($types)) {
+            if($types == "THERMOSTAT") {
+                if(trim($profile['Suffix']) == "°C") {
+                    return true;
+                }
+                else {
+                    return false;
+                }
             }
             else {
-                return false;
+                if(trim($profile['Suffix']) == "°C") {
+                    return false;
+                }
+                else {
+                    return true;
+                }
             }
         }
         else {
-            if(trim($profile['Suffix']) == "°C") {
-                return false;
-            }
-            else {
-                return true;
-            }
+            return true;
         }
     }
 

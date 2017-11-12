@@ -124,6 +124,13 @@ class IQL4SmartHome extends IPSModule {
         if($o['Name'] != "") {
             $friendlyName = substr($o['Name'], 0, 128);
         }
+	
+	if ($o['ApplianceType'] != ""){ 
+		$applianceTypes = array( $o['ApplianceType'] );
+	} else {
+		$applianceTypes = array();
+	}
+	    
         /*
         if($o['ObjectInfo'] != "") {
             $friendlyDescription = substr($o['ObjectInfo'], 0, 128);
@@ -145,6 +152,8 @@ class IQL4SmartHome extends IPSModule {
         if(IPS_GetObject($actionID)['ObjectType'] == 3 /* Script */) {
             $moduleName = "Generic Script";
         }
+	    
+	$friendlyDescription = 'Symcon - '.$moduleName;
 
         return Array(
             'applianceId' => $objectID,
@@ -154,7 +163,8 @@ class IQL4SmartHome extends IPSModule {
             'version' => IPS_GetKernelVersion(),
             'friendlyDescription' => $friendlyDescription,
             'isReachable' => true,
-            'actions' => Array()
+            'actions' => Array(),
+	    'applianceTypes' => $applianceTypes
         );
 
     }

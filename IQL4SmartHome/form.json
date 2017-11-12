@@ -126,7 +126,7 @@
           "label": "ApplianceType",
           "name": "ApplianceType",
           "width": "75px",
-          "add": "SWITCH",
+          "add": "SCENE_TRIGGER",
           "edit": {
             "type": "Select",
             "options":[

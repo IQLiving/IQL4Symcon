@@ -159,6 +159,354 @@ class IQL4SmartHome extends IPSModule {
 
     }
 
+    private function ConvertRequestV3ToV2($v3Request) {
+
+        // Discovery
+        if ($v3Request['directive']['header']['namespace'] == 'Alexa.Discovery') {
+            return [
+                'header' => [
+                    'namespace' => 'Alexa.ConnectedHome.Discovery'
+                ]
+            ];
+        }
+        // ReportState
+        elseif ($v3Request['directive']['header']['namespace'] == 'Alexa') {
+            return [
+                'header' => [
+                    'namespace' => 'Alexa.ConnectedHome.Query',
+                    'name' => 'GetTemperatureReadingRequest'
+                ],
+                'payload' => [
+                    'appliance' => [
+                        'applianceId' => $v3Request['directive']['endpoint']['endpointId']
+                    ]
+                ]
+            ];
+        }
+        else {
+            $name = '';
+            $payload = [
+                'appliance' => [
+                    'applianceId' => $v3Request['directive']['endpoint']['endpointId']
+                ]
+            ];
+
+            switch ($v3Request['directive']['header']['name']) {
+                case 'TurnOn':
+                    $name = 'TurnOnRequest';
+                    break;
+
+                case 'TurnOff':
+                    $name = 'TurnOffRequest';
+                    break;
+
+                case 'SetBrightness':
+                    $name = 'SetPercentageRequest';
+                    $payload['percentageState'] = [
+                        'value' => $v3Request['directive']['payload']['brightness']
+                    ];
+                    break;
+
+                case 'AdjustBrightness':
+                    if ($v3Request['directive']['payload']['brightnessDelta'] > 0) {
+                        $name = 'IncrementPercentageRequest';
+                        $payload['deltaPercentage']['value'] = $v3Request['directive']['payload']['brightnessDelta'];
+                    }
+                    else {
+                        $name = 'DecrementPercentageRequest';
+                        $payload['deltaPercentage']['value'] = -$v3Request['directive']['payload']['brightnessDelta'];
+                    }
+                    break;
+
+                case 'SetColor':
+                    $name = 'SetColorRequest';
+                    $payload['color'] = $v3Request['directive']['payload']['color'];
+                    break;
+
+                case 'SetTargetTemperature':
+                    $name = 'SetTargetTemperatureRequest';
+                    $payload['targetTemperature'] = [
+                        'value' => $v3Request['directive']['payload']['targetSetpoint']['value']
+                    ];
+                    break;
+
+                case 'AdjustTargetTemperature':
+                    if ($v3Request['directive']['payload']['targetSetpointDelta']['value'] > 0) {
+                        $name = 'IncrementTargetTemperatureRequest';
+                        $payload['deltaTemperature']['value'] = $v3Request['directive']['payload']['targetSetpointDelta']['value'];
+                    }
+                    else {
+                        $name = 'DecrementTargetTemperatureRequest';
+                        $payload['deltaTemperature']['value'] = -$v3Request['directive']['payload']['targetSetpointDelta']['value'];
+                    }
+                    break;
+
+                case 'SetColorTemperature':
+                    $name = 'SetColorTemperature';
+                    $payload['colorTemperature'] = [
+                        'value' => $v3Request['directive']['payload']['colorTemperatureInKelvin']
+                    ];
+                    break;
+
+                case 'IncreaseColorTemperature':
+                    $name = 'IncrementColorTemperatureRequest';
+                    break;
+
+                case 'DecreaseColorTemperature':
+                    $name = 'DecrementColorTemperatureRequest';
+                    break;
+            }
+
+            return [
+                'header' => [
+                    'namespace' => 'Alexa.ConnectedHome.Control',
+                    'name' => $name
+                ],
+                'payload' => $payload
+            ];
+
+        }
+    }
+
+    private function ConvertResponseV2ToV3($v2Response, $applianceId) {
+        // Discovery
+        if ($v2Response['header']['namespace'] == 'Alexa.ConnectedHome.Discovery') {
+            $endpoints = [];
+
+            foreach ($v2Response['payload']['discoveredAppliances'] as $appliance) {
+                $capabilities = [];
+                $displayCategories = [];
+                if (array_intersect($this->switchFunctions, $appliance['actions']) == $this->switchFunctions) {
+                    $capabilities[] = [
+                        'type' => 'AlexaInterface',
+                        'interface' => 'Alexa.PowerController',
+                        'version' => '3',
+                        'properties' => [
+                            'supported' => [[
+                                'name' => 'powerState'
+                            ]],
+                            'proactivelyReported' => false,
+                            'retrievable' => false
+                        ]
+                    ];
+
+                    if (!in_array('LIGHT', $displayCategories)) {
+                        $displayCategories[] = 'LIGHT';
+                    }
+                }
+
+                if (array_intersect($this->dimmingFunctions, $appliance['actions']) == $this->dimmingFunctions) {
+                    $capabilities[] = [
+                        'type' => 'AlexaInterface',
+                        'interface' => 'Alexa.BrightnessController',
+                        'version' => '3',
+                        'properties' => [
+                            'supported' => [[
+                                'name' => 'brightness'
+                            ]],
+                            'proactivelyReported' => false,
+                            'retrievable' => false
+                        ]
+                    ];
+
+                    if (!in_array('LIGHT', $displayCategories)) {
+                        $displayCategories[] = 'LIGHT';
+                    }
+                }
+
+                if (array_intersect($this->targetTemperatureFunctions, $appliance['actions']) == $this->targetTemperatureFunctions) {
+                    $capabilities[] = [
+                        'type' => 'AlexaInterface',
+                        'interface' => 'Alexa.ThermostatController',
+                        'version' => '3',
+                        'properties' => [
+                            'supported' => [[
+                                'name' => 'targetSetpoint'
+                            ]],
+                            'proactivelyReported' => false,
+                            'retrievable' => false
+                        ]
+                    ];
+
+                    if (!in_array('THERMOSTAT', $displayCategories)) {
+                        $displayCategories[] = 'THERMOSTAT';
+                    }
+                }
+
+                if (array_intersect($this->readingTemperatureFunctions, $appliance['actions']) == $this->readingTemperatureFunctions) {
+                    $capabilities[] = [
+                        'type' => 'AlexaInterface',
+                        'interface' => 'Alexa.TemperatureSensor',
+                        'version' => '3',
+                        'properties' => [
+                            'supported' => [[
+                                'name' => 'temperature'
+                            ]],
+                            'proactivelyReported' => false,
+                            'retrievable' => true
+                        ]
+                    ];
+
+                    if (!in_array('TEMPERATURE_SENSOR', $displayCategories)) {
+                        $displayCategories[] = 'TEMPERATURE_SENSOR';
+                    }
+                }
+
+                if (array_intersect($this->rgbColorFunctions, $appliance['actions']) == $this->rgbColorFunctions) {
+                    $capabilities[] = [
+                        'type' => 'AlexaInterface',
+                        'interface' => 'Alexa.ColorController',
+                        'version' => '3',
+                        'properties' => [
+                            'supported' => [[
+                                'name' => 'color'
+                            ]],
+                            'proactivelyReported' => false,
+                            'retrievable' => false
+                        ]
+                    ];
+
+                    if (!in_array('LIGHT', $displayCategories)) {
+                        $displayCategories[] = 'LIGHT';
+                    }
+                }
+
+                if (array_intersect($this->rgbTemeratureFunctions, $appliance['actions']) == $this->rgbTemeratureFunctions) {
+                    $capabilities[] = [
+                        'type' => 'AlexaInterface',
+                        'interface' => 'Alexa.ColorTemperatureController',
+                        'version' => '3',
+                        'properties' => [
+                            'supported' => [[
+                                'name' => 'colorTemperatureInKelvin'
+                            ]],
+                            'proactivelyReported' => false,
+                            'retrievable' => false
+                        ]
+                    ];
+
+                    if (!in_array('LIGHT', $displayCategories)) {
+                        $displayCategories[] = 'LIGHT';
+                    }
+                }
+
+                $endpoints[] = [
+                    'endpointId' => $appliance['applianceId'],
+                    'friendlyName' => $appliance['friendlyName'],
+                    'description' => $appliance['friendlyDescription'],
+                    'manufacturerName' => $appliance['manufacturerName'],
+                    'displayCategories' => $displayCategories,
+                    'capabilities' => $capabilities
+                ];
+            }
+
+            return [
+                'event' => [
+                    'header' => [
+                        'namespace' => 'Alexa.Discovery',
+                        'name' => 'Discover.Response',
+                        'payloadVersion' => '3',
+                        'messageId' => $v2Response['header']['messageId']
+                    ],
+                    'payload' => [
+                        'endpoints' => $endpoints
+                    ]
+                ]
+            ];
+        }
+        // Query = ReportState
+        elseif ($v2Response['header']['namespace'] == 'Alexa.ConnectedHome.Query') {
+            return [
+                'context' => [
+                    'properties' => [[
+                        'namespace' => 'Alexa.TemperatureSensor',
+                        'name' => 'temperature',
+                        'value' => [
+                            'value' => $v2Response['payload']['temperatureReading']['value'],
+                            'scale' => 'CELSIUS'
+                        ],
+                        'timeOfSample' => gmdate('o-m-d\TH:i:s\Z'),
+                        'uncertaintyInMilliseconds' => 0
+                    ],[
+                        'namespace' => 'Alexa.ThermostatController',
+                        'name' => 'targetSetpoint',
+                        'value' => [
+                            'value' => $v2Response['payload']['temperatureReading']['value'],
+                            'scale' => 'CELSIUS'
+                        ],
+                        'timeOfSample' => gmdate('o-m-d\TH:i:s\Z'),
+                        'uncertaintyInMilliseconds' => 0
+                    ]]
+                ],
+                'event' => [
+                    'header' => [
+                        'namespace' => 'Alexa',
+                        'name' => 'StateReport',
+                        'payloadVersion' => '3',
+                        'messageId' => $v2Response['header']['messageId']
+                    ],
+                    'endpoint' => [
+                        'endpointId' => $applianceId
+                    ],
+                    'payload' => new stdClass()
+                ]
+            ];
+        }
+        // Control
+        else {
+            $context = [];
+            switch ($v2Response['header']['name']) {
+                case 'SetTargetTemperatureConfirmation':
+                case 'IncrementTargetTemperatureConfirmation':
+                case 'DecrementTargetTemperatureConfirmation':
+                    $context = [
+                        'properties' => [[
+                            'namespace' => 'Alexa.ThermostatController',
+                            'name' => 'targetSetpoint',
+                            'value' => [
+                                'value' => $v2Response['payload']['targetTemperature']['value'],
+                                'scale' => 'CELSIUS'
+                            ],
+                            'timeOfSample' => gmdate('o-m-d\TH:i:s\Z'),
+                            'uncertaintyInMilliseconds' => 0
+                        ]]
+                    ];
+                    break;
+
+                case 'SetColorConfirmation':
+                    $context = [
+                        'properties' => [[
+                            'namespace' => 'Alexa.ColorController',
+                            'name' => 'color',
+                            'value' => $v2Response['payload']['achievedState']['color'],
+                            'timeOfSample' => gmdate('o-m-d\TH:i:s\Z'),
+                            'uncertaintyInMilliseconds' => 0
+                        ]]
+                    ];
+                    break;
+
+            }
+            $result = [
+                'event' => [
+                    'header' => [
+                        'namespace' => 'Alexa',
+                        'name' => 'Response',
+                        'payloadVersion' => '3',
+                        'messageId' => $v2Response['header']['messageId']
+                    ],
+                    'endpoint' => [
+                        'endpointId' => $applianceId
+                    ],
+                    'payload' => new stdClass()
+                ]
+            ];
+            if (sizeof($context) > 0) {
+                $result['context'] = $context;
+            }
+            return $result;
+        }
+    }
+
     private function DeviceDiscovery(array $data) {
         $childrenIDs = $this->GetChildrenIDs("amzID");
 
@@ -526,7 +874,20 @@ class IQL4SmartHome extends IPSModule {
         $jsonRequest = file_get_contents('php://input');
         $data = json_decode($jsonRequest,true);
         $this->SendDebug("IQL4SmartHomeRequest",print_r($data,true),0);
+        $convertResponse = false;
+        $previousValue = 0;
 
+        if (isset($data['directive']['header']['payloadVersion']) && $data['directive']['header']['payloadVersion'] == '3') {
+            if (isset($data['directive']['endpoint']['endpointId'])) {
+                $targetID = $this->GetListDetails($data['directive']['endpoint']['endpointId'])['ID'];
+                $targetObject = IPS_GetObject($targetID);
+            }
+            $data = $this->ConvertRequestV3ToV2($data);
+            $convertResponse = true;
+            $this->SendDebug("IQL4SmartHomeConvertedResponse",json_encode($data),0);
+        }
+
+        $result = '';
         if($data['header']['namespace'] == "Alexa.ConnectedHome.Discovery") {
             ob_start();
             $result = $this->DeviceDiscovery($data);
@@ -535,8 +896,6 @@ class IQL4SmartHome extends IPSModule {
                 $this->SendDebug("IQL4SmartHomeError", $error, 0);
             }
             ob_end_clean();
-            $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
-            echo json_encode($result);
         }
         elseif($data['header']['namespace'] == "Alexa.ConnectedHome.Control") {
             ob_start();
@@ -546,8 +905,6 @@ class IQL4SmartHome extends IPSModule {
                 $this->SendDebug("IQL4SmartHomeError", $error, 0);
             }
             ob_end_clean();
-            $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
-            echo json_encode($result);
         }
         elseif($data['header']['namespace'] == "Alexa.ConnectedHome.Query") {
             ob_start();
@@ -557,6 +914,18 @@ class IQL4SmartHome extends IPSModule {
                 $this->SendDebug("IQL4SmartHomeError", $error, 0);
             }
             ob_end_clean();
+        }
+
+        if ($convertResponse) {
+            $this->SendDebug('V2 Response', json_encode($result), 0);
+            $applianceId = '';
+            if (isset($data['payload']['appliance']['applianceId'])) {
+                $applianceId = $data['payload']['appliance']['applianceId'];
+            }
+            $this->SendDebug("IQL4SmartHomeResult",json_encode($this->ConvertResponseV2ToV3($result, $applianceId)),0);
+            echo json_encode($this->ConvertResponseV2ToV3($result, $applianceId));
+        }
+        else {
             $this->SendDebug("IQL4SmartHomeResult",print_r($result,true),0);
             echo json_encode($result);
         }

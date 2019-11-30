@@ -42,6 +42,25 @@
           }
         },
         {
+          "label": "ApplianceType",
+          "name": "ApplianceType",
+          "width": "75px",
+          "add": "SWITCH",
+          "edit": {
+            "type": "Select",
+            "options":[
+              {"label": "CAMERA", "value": "CAMERA"},
+              {"label": "LIGHT", "value": "LIGHT"},
+              {"label": "SMARTPLUG", "value": "SMARTPLUG"},
+              {"label": "SMARTLOCK", "value": "SMARTLOCK"},
+              {"label": "SWITCH", "value": "SWITCH"},
+              {"label": "THERMOSTAT", "value": "THERMOSTAT"},
+              {"label": "ACTIVITY_TRIGGER", "value": "ACTIVITY_TRIGGER"},
+              {"label": "SCENE_TRIGGER", "value": "SCENE_TRIGGER"}
+              ]
+          }
+        },        
+        {
           "label": "Type",
           "name": "VariablesType",
           "width": "75px",
@@ -103,6 +122,25 @@
             "type": "ValidationTextBox"
           }
         },
+        {
+          "label": "ApplianceType",
+          "name": "ApplianceType",
+          "width": "75px",
+          "add": "SCENE_TRIGGER",
+          "edit": {
+            "type": "Select",
+            "options":[
+              {"label": "CAMERA", "value": "CAMERA"},
+              {"label": "LIGHT", "value": "LIGHT"},
+              {"label": "SMARTPLUG", "value": "SMARTPLUG"},
+              {"label": "SMARTLOCK", "value": "SMARTLOCK"},
+              {"label": "SWITCH", "value": "SWITCH"},
+              {"label": "THERMOSTAT", "value": "THERMOSTAT"},
+              {"label": "ACTIVITY_TRIGGER", "value": "ACTIVITY_TRIGGER"},
+              {"label": "SCENE_TRIGGER", "value": "SCENE_TRIGGER"}
+              ]
+          }
+        },         
         {
           "label": "Type",
           "name": "ScriptType",

@@ -675,7 +675,7 @@ class IQL4SmartHome extends IPSModule {
 
             $profile = IPS_GetVariableProfile($profileName);
 
-            if ($targetVariable['VariableCustomAction'] != "") {
+            if ($targetVariable['VariableCustomAction'] > 0) {
                 $profileAction = $targetVariable['VariableCustomAction'];
             } else {
                 $profileAction = $targetVariable['VariableAction'];
